@@ -26,6 +26,21 @@
 
   [data-r="menu-btn"] { display: none !important; }
   [data-r="menu-panel"] { display: none !important; }
+  [data-accessibility-scale="1"] [data-r="menu-panel"],
+  [data-accessibility-scale="2"] [data-r="menu-panel"] { max-height: calc(100vh - 88px); max-height: calc(100dvh - 88px); overflow-y: auto !important; overscroll-behavior: contain; scrollbar-gutter: stable; }
+  /* A navegação compacta entra antes de o cabeçalho perder espaço para os controles. */
+  @media (max-width: 1400px) {
+    [data-r="hdr-nav"] { display: none !important; }
+    [data-r="menu-btn"] { display: inline-flex !important; }
+    [data-r="menu-panel"] { display: flex !important; }
+  }
+  @media (min-width: 1025px) {
+    [data-accessibility-scale="2"] [data-r="hdr-nav"] { display: none !important; }
+    [data-accessibility-scale="2"] [data-r="menu-btn"] { display: inline-flex !important; }
+    [data-accessibility-scale="2"] [data-r="menu-panel"] { display: flex !important; }
+    [data-accessibility-scale="2"] [data-r="hdr-talk"] { width: 44px !important; min-width: 44px !important; justify-content: center !important; gap: 0 !important; padding: 8px !important; }
+    [data-accessibility-scale="2"] [data-r="hdr-talk-label"] { display: none !important; }
+  }
   @media (max-width: 1024px) {
     main img, main svg { max-width: 100%; }
     [data-r="hdr-nav"] { display: none !important; }
@@ -51,6 +66,9 @@
     [data-r="hdr-a11y"] { display: none !important; }
     [data-r="hdr-talk"] { display: inline-flex !important; flex: none !important; width: 44px !important; min-width: 44px !important; justify-content: center !important; gap: 0 !important; padding: 8px !important; }
     [data-r="hdr-talk-label"] { display: none !important; }
+    [data-accessibility-scale="2"] [data-r="hdr-row"] { gap: 4px !important; padding-left: 8px !important; padding-right: 8px !important; }
+    [data-accessibility-scale="2"] [data-r="hdr-logo"] img { height: 30px !important; }
+    [data-accessibility-scale="2"] [data-r="hdr-cta"] { padding-left: 8px !important; padding-right: 8px !important; }
     [data-r="step-label"] { display: none !important; }
     [data-r="hdr-cta"] { padding: 8px 14px !important; }
     [data-r="home-wrap"] { margin: 0 !important; width: 100% !important; }
@@ -243,7 +261,7 @@
   }
 </style>
 </helmet>
-<div style="{{ rootStyle }}">
+<div data-accessibility-scale="{{ accessibilityScale }}" style="{{ rootStyle }}">
 
   
 
@@ -2881,7 +2899,7 @@ class Component extends DCLogic {
     const questionSpeech = q ? q.text + '. ' + (q.help || '') + (q.type === 'single' ? ' Opções: ' + q.options.join(', ') + '.' : '') : '';
 
     return {
-      rootStyle, noop: () => {},
+      rootStyle, accessibilityScale: s.scaleIdx, noop: () => {},
       scaleOptions, hcOn: s.hc, hcBg: s.hc ? t['--brand'] : 'transparent', hcFg: s.hc ? '#FFFFFF' : t['--brand'],
       hcLabel: s.hc ? 'Modo claro' : 'Modo escuro', hcIcon: s.hc ? 'light_mode' : 'dark_mode',
       toggleHc: () => { const hc = !s.hc; this.setState({ hc }); this.savePrefs({ scaleIdx: s.scaleIdx, hc }); },

@@ -90,13 +90,15 @@ function openFlowTest(){
  const body=panel.querySelector("#flowTestBody");
  const nodes=state.nodes||[];const edges=state.edges||[];
  const start=nodes.find(n=>n.type==="start")||nodes[0];
- let current=start?.id||null;
+ let current=start?.id||null;let variables={};
+ function renderVariables(value){return String(value||"").replace(/\{\{\s*([\w.-]+)\s*\}\}/g,(match,key)=>key==="nome_profissional"?(localStorage.getItem("od_proName")||"profissional"):(variables[key]??match));}
  function show(){
   const node=nodes.find(n=>n.id===current);
   if(!node){body.innerHTML='<p>Destino não encontrado. Revise as conexões.</p>';return}
   const outgoing=edges.filter(e=>e.source===node.id);
-  body.innerHTML='<div style="background:var(--bg);padding:12px;border-radius:12px;margin:10px 0"><small style="color:var(--muted)">'+esc(types[node.type]?.[1]||"Bloco")+'</small><b style="display:block;margin:4px 0">'+esc(node.title)+'</b><p style="margin:0;white-space:pre-wrap">'+esc(node.text||"")+'</p></div>';
-  if(node.type==="end"||node.type==="handoff"){body.innerHTML+='<p class="sub">'+(node.type==="end"?"Fim do fluxo.":"Etapa de atendimento humano.")+'</p><button class="btn primary" id="restartFlowTest">Reiniciar teste</button>'}
+  body.innerHTML='<div style="background:var(--bg);padding:12px;border-radius:12px;margin:10px 0"><small style="color:var(--muted)">'+esc(types[node.type]?.[1]||"Bloco")+'</small><b style="display:block;margin:4px 0">'+esc(node.title)+'</b><p style="margin:0;white-space:pre-wrap">'+esc(renderVariables(node.text||""))+'</p></div>';
+  if(node.type==="question"){const variable=(node.text||"").match(/\{\{\s*([\w.-]+)\s*\}\}/)?.[1]||"resposta";body.innerHTML+='<p class="sub">Resposta de teste · será armazenada em <b>{{'+esc(variable)+'}}</b></p><form id="flowTestAnswer" style="display:flex;gap:8px"><input id="flowTestAnswerValue" required placeholder="Digite sua resposta" style="min-width:0;flex:1;border:1px solid var(--line);border-radius:9px;padding:10px"><button class="btn primary" type="submit">Enviar</button></form>';const answerForm=body.querySelector("#flowTestAnswer");answerForm.onsubmit=(event)=>{event.preventDefault();const value=body.querySelector("#flowTestAnswerValue").value.trim();if(!value)return;variables[variable]=value;const index=nodes.findIndex(n=>n.id===node.id);const next=nodes[index+1];if(next){current=next.id;show()}else{body.insertAdjacentHTML("beforeend",'<p class="sub">Resposta registrada nesta simulação. Variável <b>{{'+esc(variable)+'}}</b> = '+esc(value)+'</p>')}}}
+  else if(node.type==="end"||node.type==="handoff"){body.innerHTML+='<p class="sub">'+(node.type==="end"?"Fim do fluxo.":"Etapa de atendimento humano.")+'</p><button class="btn primary" id="restartFlowTest">Reiniciar teste</button>'}
   else if(outgoing.length){body.innerHTML+='<p class="sub">Escolha um caminho para continuar:</p><div style="display:grid;gap:8px">'+outgoing.map((e,i)=>'<button class="btn soft" data-test-edge="'+i+'">'+esc(e.label||"Continuar")+' → '+esc(nodes.find(n=>n.id===e.target)?.title||"Destino")+'</button>').join("")+'</div>'}
   else{const index=nodes.findIndex(n=>n.id===node.id);const next=nodes[index+1];body.innerHTML+='<p class="sub">Nenhuma conexão definida para este bloco.</p>'+(next?'<button class="btn primary" id="continueFlowTest">Próximo bloco: '+esc(next.title)+'</button>':'<button class="btn primary" id="restartFlowTest">Reiniciar teste</button>')}
   panel.querySelectorAll("[data-test-edge]").forEach(btn=>btn.onclick=()=>{const edge=outgoing[Number(btn.dataset.testEdge)];current=edge?.target||null;show()});

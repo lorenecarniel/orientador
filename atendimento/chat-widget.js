@@ -47,7 +47,7 @@
   let busy = false;
   let started = false;
   let humanMode = false;
-  let lastSync = "1970-01-01T00:00:00.000Z";
+  const seenMessageIds = new Set();
   let pollHandle = null;
   let professionalPhone = "";
   function bubble(text, who) {
@@ -116,7 +116,7 @@
       sessionToken = data.session_token;
       started = true;
       showResult(data);
-      lastSync = new Date().toISOString();
+
     } catch (error) {
       bubble(error.message, "bot");
       status.textContent = "Não foi possível iniciar. Tente novamente mais tarde.";
@@ -144,9 +144,10 @@
   async function syncMessages() {
     if (!conversationId || !sessionToken || !panel.classList.contains("od-open")) return;
     try {
-      const data = await request({ action: "sync", conversation_id: conversationId, session_token: sessionToken, after: lastSync });
+      const data = await request({ action: "sync", conversation_id: conversationId, session_token: sessionToken });
       (data.messages || []).forEach((message) => {
-        lastSync = message.created_at;
+        if (seenMessageIds.has(message.id)) return;
+        seenMessageIds.add(message.id);
         if (message.sender_type === "professional" || (message.direction === "outbound" && message.sender_type !== "chatbot")) bubble(message.content, "bot");
         else if (message.sender_type === "system") bubble(message.content, "bot");
       });

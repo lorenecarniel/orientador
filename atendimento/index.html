@@ -108,6 +108,7 @@ async function publishFlow(){
   const ids=new Set(state.nodes.map(n=>n.id));
   const invalid=(state.edges||[]).find(e=>!ids.has(e.source)||!ids.has(e.target)||e.source===e.target||!String(e.label||"").trim());
   if(invalid)throw new Error("Há uma conexão inválida ou sem nome. Revise os caminhos.");
+  for(const node of state.nodes.filter(n=>n.type==="options")){const outgoing=(state.edges||[]).filter(e=>e.source===node.id);if(!outgoing.length)throw new Error("O bloco de opções "+node.title+" precisa ter pelo menos um caminho configurado.");if(outgoing.some(e=>!String(e.label||"").trim()))throw new Error("Todas as opções precisam ter um texto.");}
   for(const node of state.nodes.filter(n=>n.type==="condition")){
    const outgoing=(state.edges||[]).filter(e=>e.source===node.id);
    const yes=outgoing.some(e=>/^(sim|true|yes|verdadeiro)$/i.test(String(e.label||"").trim()));

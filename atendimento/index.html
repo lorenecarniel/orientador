@@ -206,8 +206,9 @@ async function loadBuilderFromSupabase(){
    if(error)throw error;bot=created;
   }
   state.chatbotId=bot.id;
-  const {data:flow,error:flowError}=await odSupabase.from("chatbot_flows").select("id,name,definition,status,version").eq("chatbot_id",bot.id).neq("status","archived").order("version",{ascending:false}).limit(1).maybeSingle();
+  let {data:flow,error:flowError}=await odSupabase.from("chatbot_flows").select("id,name,definition,status,version").eq("chatbot_id",bot.id).eq("status","draft").order("version",{ascending:false}).limit(1).maybeSingle();
   if(flowError)throw flowError;
+  if(!flow){const published=await odSupabase.from("chatbot_flows").select("id,name,definition,status,version").eq("chatbot_id",bot.id).eq("status","published").order("version",{ascending:false}).limit(1).maybeSingle();if(published.error)throw published.error;flow=published.data;}
   if(flow){
    state.flowId=flow.id;state.flowName=flow.name||"Atendimento principal";
    const def=flow.definition||{};

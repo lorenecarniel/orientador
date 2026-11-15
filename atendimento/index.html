@@ -212,10 +212,8 @@ async function openConversationHistory(id){
   if(error){toast("Não foi possível enviar: "+error.message);button.disabled=false;return}
   const sentAt=new Date().toISOString();
   await odSupabase.from("chatbot_conversations").update({status:"in_progress",last_message_at:sentAt,assigned_to:currentUser.id,assigned_at:sentAt,handoff_channel:"panel"}).eq("id",id);
-  const optimisticMessage={id:"local-"+Date.now(),direction:"outbound",content:value,created_at:sentAt,sender_type:"professional"};
-  knownMessageIds.add(optimisticMessage.id);
-  messageBox.insertAdjacentHTML("beforeend",renderMessage(optimisticMessage));
-  messageBox.scrollTop=messageBox.scrollHeight;
+  // A mensagem será exibida pelo polling após ser lida do banco.
+  // Não inserir uma cópia otimista aqui evita duplicação quando o polling a encontrar.
   field.value="";
   button.disabled=false;
   await loadConversations();

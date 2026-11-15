@@ -49,6 +49,7 @@
   let humanMode = false;
   let lastSync = "1970-01-01T00:00:00.000Z";
   let pollHandle = null;
+  let professionalPhone = "";
   function bubble(text, who) {
     const el = document.createElement("div");
     el.className = "od-bubble " + (who === "user" ? "od-user" : "od-bot");
@@ -74,7 +75,20 @@
   }
   function showResult(data) {
     if (data.message) bubble(data.message, "bot");
+    if (data.professional_phone) professionalPhone = String(data.professional_phone).replace(/\\D/g, "");
     choices.replaceChildren();
+    const oldWhats = panel.querySelector("#od-chat-whatsapp");
+    if (oldWhats) oldWhats.remove();
+    if (professionalPhone && (data.status === "waiting_human" || data.status === "integration_pending" || data.status === "in_progress")) {
+      const wa = document.createElement("a");
+      wa.id = "od-chat-whatsapp";
+      wa.className = "od-choice";
+      wa.style.cssText = "display:block;margin:0 12px 10px;text-decoration:none;text-align:center";
+      const normalized = professionalPhone.startsWith("55") ? professionalPhone : "55" + professionalPhone;
+      wa.href = "https://wa.me/" + normalized + "?text=" + encodeURIComponent("Olá! Gostaria de continuar meu atendimento pelo OrientaDor.");
+      wa.target = "_blank"; wa.rel = "noopener"; wa.textContent = "Continuar pelo WhatsApp";
+      panel.insertBefore(wa, form);
+    }
     if (Array.isArray(data.choices)) {
       data.choices.forEach((choice) => {
         const button = document.createElement("button");
@@ -85,7 +99,7 @@
         choices.appendChild(button);
       });
     }
-    if (data.status === "waiting_human" || data.status === "in_progress") { humanMode = true; status.textContent = data.status === "in_progress" ? "Você está conversando com a equipe." : "Aguardando um profissional assumir. Você pode deixar sua mensagem."; }
+    if (data.status === "waiting_human" || data.status === "in_progress" || data.status === "integration_pending") { humanMode = true; status.textContent = data.status === "in_progress" ? "Você está conversando com a equipe." : "Aguardando um profissional assumir. Você pode deixar sua mensagem."; }
     else if (data.status === "integration_pending") status.textContent = "Integração pendente · equipe será avisada.";
     else if (data.status === "closed") {
       status.textContent = "Atendimento finalizado.";

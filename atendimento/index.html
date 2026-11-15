@@ -24,7 +24,8 @@
  <button data-page="templates"><span class="ico">▧</span>Templates</button>
  <button data-page="builder"><span class="ico">⌘</span>Construtor de fluxos</button>
  <button data-page="channels"><span class="ico">◉</span>Canais</button>
- <button data-page="profile"><span class="ico">♙</span>Meu perfil</button>\n <button data-page="settings"><span class="ico">⚙</span>Configurações</button>
+ <button data-page="profile"><span class="ico">♙</span>Meu perfil</button>
+ <button data-page="settings"><span class="ico">⚙</span>Configurações</button>
  </nav></div>
  <div class="sidebottom"><b>Ambiente de demonstração</b><span>Os dados desta versão ficam salvos neste navegador.</span></div>
 </aside>
@@ -36,7 +37,10 @@
  <section class="content" id="page"></section>
 </main></div><div id="authRoot"></div><div id="toast" class="toast hidden"></div>
 <script>
-const $=s=>document.querySelector(s);\n// Inicializa o SDK; nenhuma consulta ao banco é feita até aplicarmos o schema e as políticas RLS.\nconst odSupabase = (window.supabase && window.OD_SUPABASE_CONFIG) ? window.supabase.createClient(window.OD_SUPABASE_CONFIG.url, window.OD_SUPABASE_CONFIG.publishableKey) : null;\nwindow.odSupabase = odSupabase;
+const $=s=>document.querySelector(s);
+// Inicializa o SDK; nenhuma consulta ao banco é feita até aplicarmos o schema e as políticas RLS.
+const odSupabase = (window.supabase && window.OD_SUPABASE_CONFIG) ? window.supabase.createClient(window.OD_SUPABASE_CONFIG.url, window.OD_SUPABASE_CONFIG.publishableKey) : null;
+window.odSupabase = odSupabase;
 const initialNodes=[
 {id:"start",type:"start",title:"Início da conversa",text:"Paciente inicia o atendimento pelo site ou WhatsApp."},
 {id:"welcome",type:"message",title:"Boas-vindas",text:"Olá! Seja bem-vindo(a)! Sou a assistente virtual de {{nome_profissional}}. Como posso chamar você?"},

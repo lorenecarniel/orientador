@@ -197,7 +197,7 @@ async function openConversationHistory(id){
  const renderMessages=items=>items.map(renderMessage).join("");
  modal.innerHTML=`<section class="conversation-drawer" role="dialog" aria-modal="true" aria-label="Conversa com paciente">
 <header class="conversation-drawer-head"><div><div class="eyebrow">${conversation.is_test?"SIMULAÇÃO":"CENTRAL DE ATENDIMENTO"}</div><h2>${esc(conversation.patient_name||"Paciente não identificado")}</h2></div><button class="btn" id="closeConversationHistory" aria-label="Fechar conversa">✕</button></header>
-<div class="conversation-drawer-meta"><span>${esc(conversation.channel||"web")}</span><span>·</span><span>${esc(conversation.status==="waiting_human"?"Aguardando equipe":conversation.status==="in_progress"?"Em atendimento":conversation.status)}</span><span>·</span><span>${conversation.assigned_to?(conversation.assigned_to===currentUser?.id?"Responsável: você":"Responsável: outro profissional"):"Sem responsável"}</span>${Number(state.conversations.find(c=>c.id===id)?.unread_count||0)?'<span class="conversation-new-indicator">Nova mensagem</span>':""}</div>
+<div class="conversation-drawer-meta"><span>${esc(conversation.channel||"web")}</span><span>·</span><span>${esc(conversation.status==="waiting_human"?"Aguardando equipe":conversation.status==="in_progress"?"Em atendimento":conversation.status)}</span>${Number(state.conversations.find(c=>c.id===id)?.unread_count||0)?'<span class="conversation-new-indicator">Nova mensagem</span>':""}</div>
 <div id="humanMessages" class="conversation-drawer-messages">${renderMessages(messages)}</div>
 ${isLive?'<div class="conversation-drawer-actions">'+(conversation.status==="waiting_human"?'<button class="btn primary" id="assumeConversation">Assumir atendimento</button>':'')+(conversation.status!=="closed"?'<button class="btn" id="closeHumanConversation">Encerrar atendimento</button>':'')+'</div><form id="humanReplyForm" class="conversation-drawer-composer"><input id="humanReplyText" maxlength="2000" required placeholder="Digite uma mensagem..." autocomplete="off"><button class="btn primary" type="submit" aria-label="Enviar mensagem">➤</button></form>':''}
 <details class="conversation-drawer-details"><summary>Dados da conversa · Variáveis coletadas</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px">${esc(JSON.stringify(conversation.variables||{},null,2))}</pre></details></section>`;
@@ -224,12 +224,11 @@ ${isLive?'<div class="conversation-drawer-actions">'+(conversation.status==="wai
  if(assume)assume.onclick=async()=>{
   assume.disabled=true;
   const now=new Date().toISOString();
-  const {data:claimed,error}=await odSupabase.from("chatbot_conversations").update({status:"in_progress",assigned_to:currentUser.id,assigned_at:now,human_started_at:now,handoff_channel:"panel"}).eq("id",id).eq("professional_id",currentUser.id).eq("status","waiting_human").is("assigned_to",null).select("id").maybeSingle();
+  const {data:claimed,error}=await odSupabase.from("chatbot_conversations").update({status:"in_progress",human_started_at:now,handoff_channel:"panel"}).eq("id",id).eq("professional_id",currentUser.id).eq("status","waiting_human").select("id").maybeSingle();
   if(error){toast("Não foi possível assumir: "+error.message);assume.disabled=false;return}
   if(!claimed){toast("Esta conversa já foi assumida ou não está mais aguardando atendimento. Atualize a lista.");assume.disabled=false;await loadConversations();return}
-  toast("Atendimento assumido por você.");
+  toast("Atendimento iniciado.");
   assume.remove();
-  const meta=modal.querySelector(".conversation-drawer-meta");if(meta)meta.insertAdjacentHTML("beforeend",'<span class="conversation-new-indicator">Responsável: você</span>');
   const statusLine=modal.querySelector(".sub");
   if(statusLine)statusLine.textContent=statusLine.textContent.replace("waiting_human","in_progress");
   await loadConversations();
@@ -340,9 +339,8 @@ function conversationsPage(){
  const rows=state.conversations.map(c=>{
   const statusLabel=c.status==="waiting_human"?"Aguardando humano":c.status==="in_progress"?"Em atendimento":c.status==="closed"?"Encerrada":c.status;
   const unread=Number(c.unread_count||0);
-  const ownerLabel=c.assigned_to?(c.assigned_to===currentUser?.id?"Responsável: você":"Responsável: outro profissional"):"Sem responsável";
-  const searchText=[c.patient_name||"Paciente não identificado",c.channel||"web",statusLabel,ownerLabel].join(" ").toLocaleLowerCase("pt-BR");
-  return '<tr data-conversation-row data-search="'+attr(searchText)+'" data-status="'+attr(c.status)+'" data-channel="'+attr(c.channel||"web")+'"><td><b>'+esc(c.patient_name||"Paciente não identificado")+'</b>'+(unread?'<div><span class="pill amber">'+unread+' nova(s) mensagem(ns)</span></div>':'')+'<div><small style="color:var(--muted)">'+esc(ownerLabel)+'</small></div></td><td><span class="pill">'+(c.is_test?"Teste":"Real")+'</span></td><td>'+esc(c.channel||"web")+'</td><td>'+esc(new Date(c.last_message_at).toLocaleString("pt-BR"))+'</td><td><span class="pill">'+esc(statusLabel)+'</span></td><td><button class="btn '+(!c.is_test&&c.status==="waiting_human"?"primary":"")+'" data-open-conversation="'+c.id+'">'+(c.is_test?"Ver histórico":c.status==="waiting_human"?"Assumir / abrir":"Abrir conversa")+'</button></td></tr>';
+  const searchText=[c.patient_name||"Paciente não identificado",c.channel||"web",statusLabel].join(" ").toLocaleLowerCase("pt-BR");
+  return '<tr data-conversation-row data-search="'+attr(searchText)+'" data-status="'+attr(c.status)+'" data-channel="'+attr(c.channel||"web")+'"><td><b>'+esc(c.patient_name||"Paciente não identificado")+'</b>'+(unread?'<div><span class="pill amber">'+unread+' nova(s) mensagem(ns)</span></div>':'')+'</td><td><span class="pill">'+(c.is_test?"Teste":"Real")+'</span></td><td>'+esc(c.channel||"web")+'</td><td>'+esc(new Date(c.last_message_at).toLocaleString("pt-BR"))+'</td><td><span class="pill">'+esc(statusLabel)+'</span></td><td><button class="btn '+(!c.is_test&&c.status==="waiting_human"?"primary":"")+'" data-open-conversation="'+c.id+'">'+(c.is_test?"Ver histórico":c.status==="waiting_human"?"Assumir / abrir":"Abrir conversa")+'</button></td></tr>';
  }).join("");
  return heading("ATENDIMENTO","Central de conversas","Organize a fila, encontre pacientes e acompanhe os atendimentos em andamento.")+
  '<div class="stats-grid" style="margin-bottom:16px"><div class="panel"><small>Aguardando equipe</small><h2>'+waiting+'</h2></div><div class="panel"><small>Em atendimento</small><h2>'+active+'</h2></div><div class="panel"><small>Total de conversas</small><h2>'+real.length+'</h2></div></div>'+

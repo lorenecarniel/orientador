@@ -194,6 +194,34 @@ Deno.serve(async (request) => {
       return json({ conversation_id: conversation.id, session_token: token, flow_version: flow.version, ...result });
     }
 
+    if (body.action === "sync" || body.action === "patient_message") {
+      const conversationId = String(body.conversation_id || "");
+      const token = String(body.session_token || "");
+      if (!/^[0-9a-f-]{36}$/i.test(conversationId) || token.length < 32) return json({ error: "Sessão inválida." }, 400);
+      const tokenHash = await sha256(token);
+      const { data: conversation, error } = await db.from("chatbot_conversations")
+        .select("id,status,professional_id").eq("id", conversationId).eq("runtime_token_hash", tokenHash).maybeSingle();
+      if (error || !conversation) return json({ error: "Sessão não encontrada." }, 404);
+      if (body.action === "patient_message") {
+        const content = String(body.message || "").trim();
+        if (!content || content.length > 2000) return json({ error: "Mensagem inválida." }, 400);
+        if (!["waiting_human", "in_progress"].includes(conversation.status)) return json({ error: "Esta conversa não está recebendo mensagens." }, 409);
+        const { error: insertError } = await db.from("chatbot_messages").insert({
+          conversation_id: conversationId, direction: "inbound", message_type: "text",
+          content, sender_type: "patient", metadata: { source: "web_widget" }
+        });
+        if (insertError) throw insertError;
+        await db.from("chatbot_conversations").update({ last_message_at: new Date().toISOString() }).eq("id", conversationId);
+        return json({ status: conversation.status, accepted: true });
+      }
+      const cursor = String(body.after || "1970-01-01T00:00:00.000Z");
+      const { data: messages, error: messagesError } = await db.from("chatbot_messages")
+        .select("id,direction,content,created_at,sender_type").eq("conversation_id", conversationId)
+        .gt("created_at", cursor).order("created_at", { ascending: true }).limit(100);
+      if (messagesError) throw messagesError;
+      return json({ status: conversation.status, messages: messages || [] });
+    }
+
     if (body.action === "reply") {
       const conversationId = String(body.conversation_id || "");
       const token = String(body.session_token || "");

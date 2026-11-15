@@ -90,6 +90,7 @@ function startSimulator(){
  state.simulator={messages:[],choices:[],waiting:false,status:"Iniciando...",current:null,variables:{}};
  render();advanceSimulator(state.nodes.find(n=>n.type==="start")?.id||state.nodes[0].id);
 }
+function simulatorNext(node){const explicit=(state.edges||[]).find(e=>e.source===node.id);if(explicit)return explicit.target;const index=state.nodes.findIndex(x=>x.id===node.id);return state.nodes[index+1]?.id||null;}
 function advanceSimulator(nodeId){
  const sim=state.simulator;if(!sim)return;
  const node=state.nodes.find(n=>n.id===nodeId);
@@ -97,7 +98,7 @@ function advanceSimulator(nodeId){
  sim.current=node.id;sim.choices=[];sim.waiting=false;
  const text=node.text||"";
  if(node.type==="start"){const edge=(state.edges||[]).find(e=>e.source===node.id);const next=edge?.target||state.nodes.find(n=>n.type==="message")?.id;if(next){advanceSimulator(next);return}sim.status="Conecte o início a um bloco de mensagem.";render();return}
- if(node.type==="message"){sim.messages.push({from:"bot",text});const edge=(state.edges||[]).find(e=>e.source===node.id);if(edge){render();advanceSimulator(edge.target);return}sim.status="Mensagem exibida. Conecte uma saída para continuar.";render();return}
+ if(node.type==="message"){sim.messages.push({from:"bot",text});const next=simulatorNext(node);if(next){render();advanceSimulator(next);return}sim.status="Fim da sequência. Adicione uma conexão para continuar.";render();return}
  if(node.type==="question"){sim.messages.push({from:"bot",text});sim.waiting=true;sim.status="Aguardando resposta do paciente.";render();return}
  if(node.type==="options"||node.type==="condition"){sim.messages.push({from:"bot",text||"Escolha uma opção:"});sim.choices=(state.edges||[]).filter(e=>e.source===node.id).map(e=>({label:e.label,target:e.target}));sim.status=sim.choices.length?"Aguardando escolha do paciente.":"Este bloco ainda não tem opções conectadas.";render();return}
  if(node.type==="action"){sim.messages.push({from:"bot",text||"Etapa de integração simulada."});sim.status="Ação simulada. Nenhuma agenda ou sistema externo foi acionado.";render();return}
@@ -114,8 +115,8 @@ function submitSimulatorAnswer(event){
  const value=$("#simAnswer")?.value.trim();if(!value)return;
  sim.messages.push({from:"user",text:value});sim.waiting=false;
  const current=state.nodes.find(n=>n.id===sim.current);
- const edge=(state.edges||[]).find(e=>e.source===current?.id);
- if(edge){render();advanceSimulator(edge.target)}else{sim.status="Resposta registrada apenas nesta simulação. Conecte uma saída para continuar.";render()}
+ const next=current?simulatorNext(current):null;
+ if(next){render();advanceSimulator(next)}else{sim.status="Resposta registrada apenas nesta simulação. Fim da sequência.";render()}
 }
 
 async function loadBuilderFromSupabase(){

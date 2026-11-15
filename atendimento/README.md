@@ -1,27 +1,41 @@
-# OrientaDor — Atendimento inteligente (v1)
+# OrientaDor — Painel profissional e atendimento inteligente
 
-## O que foi criado
-- Painel administrativo inicial em `atendimento/index.html`.\n- Tela de login, cadastro por e-mail/senha, recuperação de senha e logout via Supabase Auth.\n- Bloqueio da área interna enquanto não houver sessão autenticada.
-- Navegação: visão geral, conversas, templates, construtor, canais e configurações.
-- Biblioteca inicial de templates para saúde.
-- Construtor de blocos em sequência com edição de título e conteúdo.
-- Simulação visual da arquitetura e pontos de integração.
-- Migration inicial Supabase em `supabase/migrations/001_chatbot.sql`.
+## Entregas desta versão
+- Painel administrativo em `atendimento/index.html`.
+- Login, cadastro por e-mail/senha, recuperação de senha e logout via Supabase Auth.
+- Área interna protegida por sessão autenticada.
+- Tela **Meu perfil**, com leitura e atualização do cadastro profissional no Supabase.
+- Criação automática de perfil após cadastro de usuário, por trigger no banco.
+- Biblioteca de templates e construtor inicial de fluxos.
+- Telas iniciais de conversas, canais e configurações.
 
-## Configuração Supabase\n\nO arquivo `supabase-config.js` contém apenas a Project URL e a publishable key pública do projeto OrientaDor. O painel inicializa o SDK `supabase-js` no navegador, mas ainda não consulta nem grava tabelas. A publishable key só é segura no frontend quando as políticas RLS estiverem corretamente aplicadas. Nunca adicionar `service_role`, secret keys ou senha do banco a este repositório.\n\n## Autenticação\n\nO painel usa Supabase Auth com e-mail e senha. Configure em Authentication → URL Configuration os endereços de redirecionamento permitidos para o ambiente local e para o domínio onde o painel será publicado. O fluxo de cadastro respeita a confirmação de e-mail definida no projeto. A autenticação já está integrada, mas ainda não existe perfil de profissional/tabela de associação com os cadastros de negócio do OrientaDor.\n\n## Como testar
-Abra `atendimento/index.html` em um navegador ou publique o diretório no GitHub Pages.
-Os rascunhos e configurações desta primeira versão são salvos em localStorage do navegador.
+## Configuração do Supabase
+
+O arquivo `supabase-config.js` contém apenas a Project URL e a publishable key pública. Nunca adicione `service_role`, secret keys ou a senha do banco ao repositório.
+
+### Aplicar as migrations
+No Supabase, abra **SQL Editor → New query** e execute os arquivos nesta ordem:
+
+1. `supabase/migrations/001_chatbot.sql`
+2. `supabase/migrations/002_professional_profiles.sql`
+
+A segunda migration cria `professional_profiles`, ativa RLS e cria automaticamente o perfil quando uma conta é cadastrada no Supabase Auth. Se a migration 001 já tiver sido aplicada, execute somente a 002.
+
+### URLs de autenticação
+Em **Authentication → URL Configuration**, configure a Site URL e inclua os endereços de desenvolvimento e produção em Redirect URLs. Para testar, sirva a pasta `atendimento` por HTTP(S); não abra o HTML diretamente por `file://`.
+
+## Como testar o perfil
+1. Publique/execute o painel em um endereço HTTP(S) permitido.
+2. Crie uma conta pela opção **Criar cadastro**.
+3. Confirme o e-mail se a confirmação estiver habilitada.
+4. Entre no painel e abra **Meu perfil**.
+5. Preencha os dados e salve. O perfil é vinculado ao ID da conta autenticada.
 
 ## Limites desta entrega
-Esta é uma primeira versão navegável do painel e do construtor, não um chatbot em produção. Ainda não envia mensagens pelo WhatsApp, não grava no Supabase e não cria agendamentos reais. As telas identificam esses pontos como não conectados/demonstrativos.
+O painel e a autenticação estão implementados, e o módulo de perfil está pronto para usar a migration 002. Ainda não há integração real com agenda, cadastro de pacientes, WhatsApp, motor de execução do chatbot ou publicação de fluxos. Os rascunhos do construtor permanecem locais no navegador.
 
-## Próximas implementações
-1. Integrar autenticação e dados do profissional com o Supabase existente.
-2. Criar motor de execução de fluxos (estado da conversa, nós, transições e variáveis).
-3. Criar Edge Functions para webhook e envio de mensagens da Meta.
-4. Implementar widget web e sessão pública segura.
-5. Integrar agenda e cadastro de pacientes.
-6. Adicionar testes, logs, consentimentos e políticas de retenção.
-
-## Supabase
-Revise a migration antes de aplicar. Ela pressupõe, provisoriamente, que o profissional autenticado possa ser identificado por `auth.uid()`. A associação com o modelo real de profissionais do OrientaDor deve ser ajustada antes de produção. Nunca exponha `service_role` ou tokens da Meta no navegador.
+## Segurança e próximos passos
+- As políticas RLS do perfil permitem que cada profissional leia e edite somente o próprio registro.
+- O ID do perfil é o mesmo UUID da conta em `auth.users`.
+- Dados de saúde e dados de pacientes não devem ser adicionados até implementarmos os controles de privacidade, consentimento, auditoria e retenção.
+- Tokens da Meta e chaves secretas devem ficar em Supabase Edge Function Secrets, nunca no frontend.

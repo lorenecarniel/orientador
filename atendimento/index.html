@@ -83,7 +83,7 @@ function templatesPage(){
  if(!routes[0]&&yesTarget)state.edges.push({source:node.id,target:yesTarget.id,label:"Sim"});
  else if(routes[0]&&!/^(sim|true|yes|verdadeiro)$/i.test(routes[0].label||""))routes[0].label="Sim";
  if(!routes[1]&&noTarget)state.edges.push({source:node.id,target:noTarget.id,label:"Não"});
- else if(routes[1]&&!/^(não|nao|false|no|falso)$/i.test(routes[1].label||""))routes[1].label="Não";
+ else if(routes[1]&&!/^(não|nao|false|no|falso)$/i.test(routes[1].label||"")){routes[1].label="Não";if(noTarget)routes[1].target=noTarget.id;}
  if(routes.length>2)state.edges=state.edges.filter(e=>e.source!==node.id||routes.indexOf(e)<2);
 }
 function builderPage(){

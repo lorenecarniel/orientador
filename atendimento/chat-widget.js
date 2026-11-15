@@ -152,8 +152,12 @@
         else if (message.sender_type === "system") bubble(message.content, "bot");
       });
       if (data.status === "in_progress") { humanMode = true; status.textContent = "Você está conversando com a equipe."; }
+      if (data.status === "waiting_human") { humanMode = true; status.textContent = "Aguardando um profissional assumir. Você pode deixar sua mensagem."; }
       if (data.status === "closed") { status.textContent = "Atendimento finalizado."; input.disabled = true; panel.querySelector("#od-chat-send").disabled = true; }
-    } catch (_) {}
+    } catch (error) {
+      console.error('OrientaDor chat sync error:', error);
+      status.textContent = 'Não foi possível atualizar as mensagens. Reabra o chat ou tente novamente.';
+    }
   }
   function openPanel() {
     panel.classList.add("od-open");

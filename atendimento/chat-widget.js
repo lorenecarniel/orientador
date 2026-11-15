@@ -46,6 +46,9 @@
   let sessionToken = null;
   let busy = false;
   let started = false;
+  let humanMode = false;
+  let lastSync = "1970-01-01T00:00:00.000Z";
+  let pollHandle = null;
   function bubble(text, who) {
     const el = document.createElement("div");
     el.className = "od-bubble " + (who === "user" ? "od-user" : "od-bot");
@@ -82,7 +85,7 @@
         choices.appendChild(button);
       });
     }
-    if (data.status === "waiting_human") status.textContent = "Sua solicitação será encaminhada à equipe.";
+    if (data.status === "waiting_human" || data.status === "in_progress") { humanMode = true; status.textContent = data.status === "in_progress" ? "Você está conversando com a equipe." : "Aguardando um profissional assumir. Você pode deixar sua mensagem."; }
     else if (data.status === "integration_pending") status.textContent = "Integração pendente · equipe será avisada.";
     else if (data.status === "closed") {
       status.textContent = "Atendimento finalizado.";
@@ -99,6 +102,7 @@
       sessionToken = data.session_token;
       started = true;
       showResult(data);
+      lastSync = new Date().toISOString();
     } catch (error) {
       bubble(error.message, "bot");
       status.textContent = "Não foi possível iniciar. Tente novamente mais tarde.";
@@ -112,16 +116,42 @@
     choices.replaceChildren();
     setBusy(true);
     try {
-      const data = await request({ action: "reply", conversation_id: conversationId, session_token: sessionToken, answer: value });
-      showResult(data);
+      if (humanMode) {
+        await request({ action: "patient_message", conversation_id: conversationId, session_token: sessionToken, message: value });
+        bubble(value, "user");
+        status.textContent = "Mensagem enviada à equipe.";
+      } else {
+        const data = await request({ action: "reply", conversation_id: conversationId, session_token: sessionToken, answer: value });
+        showResult(data);
+      }
     } catch (error) { bubble(error.message, "bot"); }
     finally { setBusy(false); }
   }
+  async function syncMessages() {
+    if (!conversationId || !sessionToken || !panel.classList.contains("od-open")) return;
+    try {
+      const data = await request({ action: "sync", conversation_id: conversationId, session_token: sessionToken, after: lastSync });
+      (data.messages || []).forEach((message) => {
+        lastSync = message.created_at;
+        if (message.sender_type === "professional" || (message.direction === "outbound" && message.sender_type !== "chatbot")) bubble(message.content, "bot");
+        else if (message.sender_type === "system") bubble(message.content, "bot");
+      });
+      if (data.status === "in_progress") { humanMode = true; status.textContent = "Você está conversando com a equipe."; }
+      if (data.status === "closed") { status.textContent = "Atendimento finalizado."; input.disabled = true; panel.querySelector("#od-chat-send").disabled = true; }
+    } catch (_) {}
+  }
+  function openPanel() {
+    panel.classList.add("od-open");
+    start().then(() => { if (pollHandle) clearInterval(pollHandle); pollHandle = setInterval(syncMessages, 3000); });
+  }
+  function closePanel() {
+    panel.classList.remove("od-open");
+    if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
+  }
   launcher.addEventListener("click", () => {
-    panel.classList.toggle("od-open");
-    if (panel.classList.contains("od-open")) start();
+    if (panel.classList.contains("od-open")) closePanel(); else openPanel();
   });
-  panel.querySelector("#od-chat-close").addEventListener("click", () => panel.classList.remove("od-open"));
+  panel.querySelector("#od-chat-close").addEventListener("click", closePanel);
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const value = input.value.trim();

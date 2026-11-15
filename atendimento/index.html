@@ -194,6 +194,7 @@ async function openConversationHistory(id){
 ${isLive?'<div class="conversation-drawer-actions">'+(conversation.status==="waiting_human"?'<button class="btn primary" id="assumeConversation">Assumir atendimento</button>':'')+(conversation.status!=="closed"?'<button class="btn" id="closeHumanConversation">Encerrar atendimento</button>':'')+'</div><form id="humanReplyForm" class="conversation-drawer-composer"><input id="humanReplyText" maxlength="2000" required placeholder="Digite uma mensagem..." autocomplete="off"><button class="btn primary" type="submit" aria-label="Enviar mensagem">➤</button></form>':''}
 <details class="conversation-drawer-details"><summary>Dados da conversa · Variáveis coletadas</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px">${esc(JSON.stringify(conversation.variables||{},null,2))}</pre></details></section>`;
  document.body.appendChild(modal);
+ const initialMessageBox=modal.querySelector("#humanMessages");if(initialMessageBox)initialMessageBox.scrollTop=initialMessageBox.scrollHeight;
  let conversationPoll=null;
  const messageBox=modal.querySelector("#humanMessages");
  const appendNewMessages=async()=>{
@@ -210,6 +211,7 @@ ${isLive?'<div class="conversation-drawer-actions">'+(conversation.status==="wai
  if(isLive)conversationPoll=setInterval(appendNewMessages,2500);
  const stopConversationPoll=()=>{if(conversationPoll){clearInterval(conversationPoll);conversationPoll=null}};
  modal.querySelector("#closeConversationHistory").onclick=()=>{stopConversationPoll();modal.remove()};
+ modal.addEventListener("click",e=>{if(e.target===modal){stopConversationPoll();modal.remove()}});
  const assume=modal.querySelector("#assumeConversation");
  if(assume)assume.onclick=async()=>{
   assume.disabled=true;

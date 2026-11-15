@@ -153,7 +153,7 @@ async function loadConversations(){
  conversationsLoading=true;
  const preservedFilters={search:$("#conversationSearch")?.value||"",status:$("#conversationStatusFilter")?.value||"",channel:$("#conversationChannelFilter")?.value||""};
  const result=await odSupabase.from("chatbot_conversations").select("id,patient_name,channel,status,is_test,last_message_at,started_at,flow_id,assigned_to,assigned_at,handoff_channel").eq("professional_id",currentUser.id).order("last_message_at",{ascending:false}).limit(100);
- if(result.error){toast("Não foi possível carregar conversas: "+result.error.message);return}
+ if(result.error){conversationsLoading=false;toast("Não foi possível carregar conversas: "+result.error.message);return}
  state.conversations=result.data||[];
  const liveIds=state.conversations.filter(c=>!c.is_test&&c.status!=="closed").map(c=>c.id);
  if(liveIds.length){

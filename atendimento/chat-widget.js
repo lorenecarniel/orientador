@@ -8,6 +8,8 @@
     console.error("OrientaDor chat: configuração incompleta.");
     return;
   }
+  // Evita criar dois widgets caso o script seja incluído mais de uma vez.
+  if (document.getElementById("od-chat-launcher") || document.getElementById("od-chat-panel")) return;
   const endpoint = supabaseUrl + "/functions/v1/chatbot-runtime";
   const style = document.createElement("style");
   style.textContent = `

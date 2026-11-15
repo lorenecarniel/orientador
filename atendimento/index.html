@@ -151,7 +151,22 @@ async function loadConversations(){
  if(!currentUser||!odSupabase)return;
  const result=await odSupabase.from("chatbot_conversations").select("id,patient_name,channel,status,is_test,last_message_at,started_at,flow_id,assigned_to,assigned_at,handoff_channel").eq("professional_id",currentUser.id).order("last_message_at",{ascending:false}).limit(100);
  if(result.error){toast("Não foi possível carregar conversas: "+result.error.message);return}
- state.conversations=result.data||[];render();
+ state.conversations=result.data||[];
+ const liveIds=state.conversations.filter(c=>!c.is_test&&c.status!=="closed").map(c=>c.id);
+ if(liveIds.length){
+  const msgResult=await odSupabase.from("chatbot_messages").select("conversation_id,sender_type,direction,created_at").in("conversation_id",liveIds).order("created_at",{ascending:true});
+  if(msgResult.error){console.warn("Não foi possível calcular mensagens pendentes:",msgResult.error.message);}
+  else{
+   const latestByConversation={};
+   (msgResult.data||[]).forEach(m=>{latestByConversation[m.conversation_id]=m});
+   state.conversations=state.conversations.map(c=>{
+    const latest=latestByConversation[c.id];
+    const unread=latest&&(latest.sender_type==="patient"||latest.direction==="inbound")?1:0;
+    return {...c,unread_count:unread};
+   });
+  }
+ }
+ render();
 }
 async function openConversationHistory(id){
  const first=await odSupabase.from("chatbot_conversations").select("id,patient_name,channel,status,is_test,started_at,last_message_at,variables,assigned_to,handoff_channel").eq("id",id).single();
@@ -309,8 +324,9 @@ function conversationsPage(){
  const active=real.filter(c=>c.status==="in_progress").length;
  const rows=state.conversations.map(c=>{
   const statusLabel=c.status==="waiting_human"?"Aguardando humano":c.status==="in_progress"?"Em atendimento":c.status==="closed"?"Encerrada":c.status;
+  const unread=Number(c.unread_count||0);
   const searchText=[c.patient_name||"Paciente não identificado",c.channel||"web",statusLabel].join(" ").toLocaleLowerCase("pt-BR");
-  return '<tr data-conversation-row data-search="'+attr(searchText)+'" data-status="'+attr(c.status)+'" data-channel="'+attr(c.channel||"web")+'"><td><b>'+esc(c.patient_name||"Paciente não identificado")+'</b></td><td><span class="pill">'+(c.is_test?"Teste":"Real")+'</span></td><td>'+esc(c.channel||"web")+'</td><td>'+esc(new Date(c.last_message_at).toLocaleString("pt-BR"))+'</td><td><span class="pill">'+esc(statusLabel)+'</span></td><td><button class="btn '+(!c.is_test&&c.status==="waiting_human"?"primary":"")+'" data-open-conversation="'+c.id+'">'+(c.is_test?"Ver histórico":c.status==="waiting_human"?"Assumir / abrir":"Abrir conversa")+'</button></td></tr>';
+  return '<tr data-conversation-row data-search="'+attr(searchText)+'" data-status="'+attr(c.status)+'" data-channel="'+attr(c.channel||"web")+'"><td><b>'+esc(c.patient_name||"Paciente não identificado")+'</b>'+(unread?'<div><span class="pill amber">'+unread+' nova(s) mensagem(ns)</span></div>':'')+'</td><td><span class="pill">'+(c.is_test?"Teste":"Real")+'</span></td><td>'+esc(c.channel||"web")+'</td><td>'+esc(new Date(c.last_message_at).toLocaleString("pt-BR"))+'</td><td><span class="pill">'+esc(statusLabel)+'</span></td><td><button class="btn '+(!c.is_test&&c.status==="waiting_human"?"primary":"")+'" data-open-conversation="'+c.id+'">'+(c.is_test?"Ver histórico":c.status==="waiting_human"?"Assumir / abrir":"Abrir conversa")+'</button></td></tr>';
  }).join("");
  return heading("ATENDIMENTO","Central de conversas","Organize a fila, encontre pacientes e acompanhe os atendimentos em andamento.")+
  '<div class="stats-grid" style="margin-bottom:16px"><div class="panel"><small>Aguardando equipe</small><h2>'+waiting+'</h2></div><div class="panel"><small>Em atendimento</small><h2>'+active+'</h2></div><div class="panel"><small>Total de conversas</small><h2>'+real.length+'</h2></div></div>'+

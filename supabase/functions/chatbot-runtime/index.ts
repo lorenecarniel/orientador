@@ -131,7 +131,8 @@ async function advance(session: Session, definition: Definition, firstNode: Node
     if (node.type === "handoff") {
       await addMessage(session.id, "outbound", content || "Vou encaminhar você para nossa equipe de atendimento.", { node_id: node.id, node_type: node.type });
       await db.from("chatbot_conversations").update({ status: "waiting_human", current_node_id: node.id, variables: vars, last_message_at: new Date().toISOString() }).eq("id", session.id);
-      return { status: "waiting_human", message: content, variables: vars };
+      const { data: professional } = await db.from("professional_profiles").select("phone").eq("id", session.professional_id).maybeSingle();
+      return { status: "waiting_human", message: content, variables: vars, professional_phone: professional?.phone || null };
     }
     if (node.type === "end") {
       await addMessage(session.id, "outbound", content || "Atendimento finalizado.", { node_id: node.id, node_type: node.type });
@@ -142,7 +143,8 @@ async function advance(session: Session, definition: Definition, firstNode: Node
       const notice = "Esta etapa depende de uma integração externa que ainda não foi conectada. Vou encaminhar sua solicitação para a equipe.";
       await addMessage(session.id, "outbound", notice, { node_id: node.id, node_type: node.type, integration_pending: true });
       await db.from("chatbot_conversations").update({ status: "waiting_human", current_node_id: node.id, variables: vars, last_message_at: new Date().toISOString() }).eq("id", session.id);
-      return { status: "integration_pending", message: notice, variables: vars };
+      const { data: professional } = await db.from("professional_profiles").select("phone").eq("id", session.professional_id).maybeSingle();
+      return { status: "integration_pending", message: notice, variables: vars, professional_phone: professional?.phone || null };
     }
     throw new Error("O fluxo contém um tipo de bloco não reconhecido.");
   }

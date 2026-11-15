@@ -132,7 +132,6 @@
     try {
       if (humanMode) {
         await request({ action: "patient_message", conversation_id: conversationId, session_token: sessionToken, message: value });
-        bubble(value, "user");
         status.textContent = "Mensagem enviada à equipe.";
       } else {
         const data = await request({ action: "reply", conversation_id: conversationId, session_token: sessionToken, answer: value });

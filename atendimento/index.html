@@ -34,7 +34,7 @@
  <button data-page="overview">Visão geral</button><button data-page="conversations">Conversas</button><button data-page="templates">Templates</button><button data-page="builder">Construtor</button><button data-page="channels">Canais</button><button data-page="settings">Configurações</button>
  </nav>
  <section class="content" id="page"></section>
-</main></div><div id="toast" class="toast hidden"></div>
+</main></div><div id="authRoot"></div><div id="toast" class="toast hidden"></div>
 <script>
 const $=s=>document.querySelector(s);\n// Inicializa o SDK; nenhuma consulta ao banco é feita até aplicarmos o schema e as políticas RLS.\nconst odSupabase = (window.supabase && window.OD_SUPABASE_CONFIG) ? window.supabase.createClient(window.OD_SUPABASE_CONFIG.url, window.OD_SUPABASE_CONFIG.publishableKey) : null;\nwindow.odSupabase = odSupabase;
 const initialNodes=[
@@ -75,5 +75,53 @@ function settingsPage(){return heading("CONFIGURAÇÕES","Preferências do atend
 '<div class="two"><div class="panel"><h3>Dados do profissional</h3><p class="sub">Informações utilizadas nas mensagens dinâmicas.</p><div class="field"><label>Nome do profissional</label><input id="proName" placeholder="Ex.: Dra. Ana Souza" value="'+attr(localStorage.getItem("od_proName")||"")+'"></div><div class="field"><label>Especialidade</label><input id="proSpecialty" placeholder="Ex.: Fisioterapia" value="'+attr(localStorage.getItem("od_proSpecialty")||"")+'"></div><div class="field"><label>Endereço / localização</label><input id="proAddress" placeholder="Endereço do consultório" value="'+attr(localStorage.getItem("od_proAddress")||"")+'"></div><button class="btn primary" id="saveSettings">Salvar configurações</button></div><div class="panel"><h3>Regras gerais</h3><div class="field"><label>Tempo de inatividade (minutos)</label><input type="number" min="1" value="15"></div><div class="field"><label>Mensagem de transferência</label><textarea>Vou encaminhar você para nossa equipe de atendimento.</textarea></div><div class="note">Configurações de produção, consentimentos, retenção de dados e políticas de privacidade deverão ser persistidos no Supabase com controle de acesso por profissional.</div></div></div>'}
 function bindPage(){document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));document.querySelectorAll("[data-template]").forEach(b=>b.onclick=()=>{let t=templates.find(x=>x.id===b.dataset.template);state.nodes=structuredClone(t.nodes);state.flowName=t.name;state.selected=state.nodes[1]?.id||state.nodes[0].id;save();go("builder");toast("Template carregado no construtor")});document.querySelectorAll("[data-node]").forEach(b=>b.onclick=()=>{state.selected=b.dataset.node;render()});document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{let type=b.dataset.add;let id=type+"_"+Date.now();state.nodes.push({id,type,title:types[type][1],text:"Configure o conteúdo deste bloco."});state.selected=id;save();render()});if($("#applyNode"))$("#applyNode").onclick=()=>{let n=state.nodes.find(x=>x.id===state.selected);n.title=$("#nodeTitle").value;n.text=$("#nodeText").value;save();render();toast("Bloco atualizado")};if($("#deleteNode"))$("#deleteNode").onclick=()=>{state.nodes=state.nodes.filter(x=>x.id!==state.selected);state.selected=state.nodes[0]?.id;save();render();toast("Bloco removido")};if($("#saveFlow"))$("#saveFlow").onclick=()=>{save();toast("Rascunho salvo neste navegador")};if($("#saveSettings"))$("#saveSettings").onclick=()=>{["proName","proSpecialty","proAddress"].forEach(id=>localStorage.setItem("od_"+id,$("#"+id).value));toast("Configurações salvas")};if($("#whatsInfo"))$("#whatsInfo").onclick=()=>toast("A integração será configurada após provisionar o backend e as credenciais da Meta.");if($("#webInfo"))$("#webInfo").onclick=()=>toast("O widget web será disponibilizado após a implementação do endpoint público.");}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}function attr(s){return esc(s).replace(/\n/g," ")}
-render();
+
+let currentUser=null, authMode="login", authNotice="", authNoticeError=false;
+function authScreen(){
+ const titles={login:["Acesse seu painel","Entre com o e-mail e a senha da sua conta profissional."],signup:["Crie sua conta","Cadastre-se para começar a organizar seu atendimento no OrientaDor."],recovery:["Recuperar senha","Informe seu e-mail para receber as instruções de redefinição."]};
+ const [title,desc]=titles[authMode];
+ $("#authRoot").innerHTML='<section class="authscreen"><aside class="authvisual"><div class="authbrand"><div class="authbrandmark">O</div><strong>OrientaDor</strong></div><div class="authcopy"><div class="eyebrow">ÁREA DO PROFISSIONAL</div><h1>Seu atendimento, mais organizado e conectado.</h1><p>Gerencie sua presença profissional e prepare uma experiência de atendimento acolhedora para seus pacientes.</p></div><div class="authfoot">OrientaDor · Plataforma de saúde</div></aside><div class="authformwrap"><div class="authform">'+(authMode!=="login"?'<button class="authback" id="authBack">← Voltar para entrar</button>':'')+'<h2>'+title+'</h2><p class="intro">'+desc+'</p><form id="authForm">'+(authMode==="signup"?'<div class="field"><label>Nome completo</label><input id="authName" autocomplete="name" required placeholder="Seu nome"></div>':'')+'<div class="field"><label>E-mail</label><input id="authEmail" type="email" autocomplete="email" required placeholder="voce@exemplo.com"></div>'+(authMode!=="recovery"?'<div class="field"><label>Senha</label><input id="authPassword" type="password" autocomplete="'+(authMode==="signup"?"new-password":"current-password")+'" minlength="8" required placeholder="Mínimo de 8 caracteres"></div>':'')+(authNotice?'<div class="authmessage '+(authNoticeError?'error':'')+'">'+esc(authNotice)+'</div>':'')+'<button class="btn primary authsubmit" type="submit">'+(authMode==="login"?"Entrar":authMode==="signup"?"Criar conta":"Enviar instruções")+'</button></form>'+(authMode==="login"?'<div class="authswitch"><button id="forgotBtn">Esqueci minha senha</button><br><br>Ainda não tem conta? <button id="signupBtn">Criar cadastro</button></div>':authMode==="signup"?'<div class="authswitch">Já tem uma conta? <button id="loginBtn">Entrar</button></div>':'<div class="authswitch"><button id="loginBtn">Voltar para o login</button></div>')+'<p class="authhint">Se a confirmação de e-mail estiver habilitada no Supabase, será necessário confirmar seu endereço antes do primeiro acesso.</p></div></div></section>';
+ $("#authForm").onsubmit=submitAuth;
+ if($("#signupBtn"))$("#signupBtn").onclick=()=>{authMode="signup";authNotice="";authScreen()};
+ if($("#forgotBtn"))$("#forgotBtn").onclick=()=>{authMode="recovery";authNotice="";authScreen()};
+ if($("#loginBtn"))$("#loginBtn").onclick=()=>{authMode="login";authNotice="";authScreen()};
+ if($("#authBack"))$("#authBack").onclick=()=>{authMode="login";authNotice="";authScreen()};
+}
+async function submitAuth(e){
+ e.preventDefault();const email=$("#authEmail").value.trim(),password=$("#authPassword")?.value;
+ const submit=$("#authForm button[type=submit]");submit.disabled=true;submit.textContent="Aguarde...";
+ try{
+  if(!odSupabase)throw new Error("Não foi possível inicializar o Supabase. Verifique a configuração do projeto.");
+  if(authMode==="login"){
+   const {error}=await odSupabase.auth.signInWithPassword({email,password});if(error)throw error;
+  }else if(authMode==="signup"){
+   const fullName=$("#authName").value.trim();
+   const {data,error}=await odSupabase.auth.signUp({email,password,options:{data:{full_name:fullName},emailRedirectTo:window.location.origin+window.location.pathname}});
+   if(error)throw error;
+   if(!data.session){authNotice="Cadastro recebido! Verifique sua caixa de entrada para confirmar o e-mail e depois faça login.";authNoticeError=false;authMode="login";authScreen();}
+  }else{
+   const {error}=await odSupabase.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
+   if(error)throw error;authNotice="Se esse e-mail estiver cadastrado, você receberá as instruções para redefinir a senha.";authNoticeError=false;authScreen();
+  }
+ }catch(err){authNotice=err.message||"Não foi possível concluir. Tente novamente.";authNoticeError=true;authScreen();}
+}
+function showPanel(user){
+ currentUser=user;$("#authRoot").innerHTML="";$(".app").classList.remove("auth-locked");
+ if($("#userAvatar"))$("#userAvatar").textContent=(user.user_metadata?.full_name||user.email||"OD").slice(0,2).toUpperCase();
+ if($("#logoutBtn"))$("#logoutBtn").onclick=async()=>{const {error}=await odSupabase.auth.signOut();if(error)toast("Não foi possível sair: "+error.message)};
+ render();
+}
+async function bootAuth(){
+ $(".app").classList.add("auth-locked");
+ if(!odSupabase){authNotice="Cliente Supabase indisponível. Confira a URL e a publishable key.";authNoticeError=true;authScreen();return;}
+ const {data:{session},error}=await odSupabase.auth.getSession();
+ if(error){authNotice="Falha ao verificar sessão: "+error.message;authNoticeError=true;authScreen();return;}
+ if(session?.user){showPanel(session.user)}else{authMode="login";authScreen()}
+ odSupabase.auth.onAuthStateChange((event,session)=>{
+  if(session?.user){showPanel(session.user)}
+  else if(event==="SIGNED_OUT"||event==="INITIAL_SESSION"){currentUser=null;$(".app").classList.add("auth-locked");authMode="login";authNotice="";authScreen()}
+ });
+}
+
+bootAuth();
 </script></body></html>

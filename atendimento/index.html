@@ -162,26 +162,47 @@ async function openConversationHistory(id){
  const conversation=first.data,isLive=!conversation.is_test;
  const messages=second.data||[];
  modal=document.createElement("div");modal.id="conversationHistoryModal";modal.style.cssText="position:fixed;inset:0;background:#102b3b88;z-index:60;display:grid;place-items:center;padding:16px";
- const renderMessages=items=>items.map(m=>{
+ const knownMessageIds=new Set(messages.map(m=>m.id));
+ const renderMessage=m=>{
   const who=m.sender_type==="professional"?"Profissional":m.sender_type==="patient"||m.direction==="inbound"?"Paciente":m.sender_type==="system"?"Sistema":"Bot";
   const isPatient=m.sender_type==="patient"||m.direction==="inbound";
   const isProfessional=m.sender_type==="professional";
   const bubbleColor=isPatient?"#e2f5e9":isProfessional?"#e8f0ff":"#f1f5f6";
   const bubbleBorder=isProfessional?"1px solid #c7d8f5":"1px solid transparent";
-  return '<div style="justify-self:'+(isPatient?"end":"start")+';width:fit-content;max-width:85%;background:'+bubbleColor+';border:'+bubbleBorder+';padding:10px 12px;border-radius:12px"><small style="color:'+(isProfessional?"#42618f":"var(--muted)")+';font-weight:'+(isProfessional?"700":"500")+'">'+who+' · '+new Date(m.created_at).toLocaleString("pt-BR")+'</small><div style="white-space:pre-wrap;margin-top:4px">'+esc(m.content)+'</div></div>';
- }).join("");
+  return '<div data-message-id="'+esc(m.id)+'" style="justify-self:'+(isPatient?"end":"start")+';width:fit-content;max-width:85%;background:'+bubbleColor+';border:'+bubbleBorder+';padding:10px 12px;border-radius:12px"><small style="color:'+(isProfessional?"#42618f":"var(--muted)")+';font-weight:'+(isProfessional?"700":"500")+'">'+who+' · '+new Date(m.created_at).toLocaleString("pt-BR")+'</small><div style="white-space:pre-wrap;margin-top:4px">'+esc(m.content)+'</div></div>';
+ };
+ const renderMessages=items=>items.map(renderMessage).join("");
  modal.innerHTML='<section class="panel" style="width:min(720px,100%);max-height:90vh;overflow:auto;padding:20px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><div class="eyebrow">'+(conversation.is_test?"SIMULAÇÃO":"CENTRAL DE ATENDIMENTO")+'</div><h2 style="margin:4px 0">'+esc(conversation.patient_name||"Paciente não identificado")+'</h2></div><button class="btn" id="closeConversationHistory">Fechar</button></div><p class="sub">Início: '+new Date(conversation.started_at).toLocaleString("pt-BR")+' · Canal: '+esc(conversation.channel)+' · Status: '+esc(conversation.status)+'</p><div id="humanMessages" style="display:grid;gap:9px;margin-top:16px;max-height:45vh;overflow:auto">'+renderMessages(messages)+'</div>'+
  (isLive?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">'+(conversation.status==="waiting_human"?'<button class="btn primary" id="assumeConversation">Assumir atendimento</button>':'')+'<span class="sub">O paciente terá a opção de continuar pelo WhatsApp do profissional, se o telefone estiver cadastrado no perfil.</span>'+(conversation.status!=="closed"?'<button class="btn" id="closeHumanConversation">Encerrar atendimento</button>':'')+'</div><form id="humanReplyForm" style="display:flex;gap:8px;margin-top:12px"><input id="humanReplyText" maxlength="2000" required placeholder="Escreva uma resposta ao paciente" style="flex:1;min-width:0"><button class="btn primary" type="submit">Enviar</button></form>':'')+
  '<details style="margin-top:16px"><summary>Variáveis coletadas</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(JSON.stringify(conversation.variables||{},null,2))+'</pre></details></section>';
  document.body.appendChild(modal);
- modal.querySelector("#closeConversationHistory").onclick=()=>modal.remove();
+ let conversationPoll=null;
+ const messageBox=modal.querySelector("#humanMessages");
+ const appendNewMessages=async()=>{
+  if(!document.body.contains(modal))return;
+  const {data,error}=await odSupabase.from("chatbot_messages").select("id,direction,content,created_at,metadata,sender_type,sender_id").eq("conversation_id",id).order("created_at",{ascending:true}).limit(150);
+  if(error){console.error("Falha ao atualizar mensagens da conversa:",error);return}
+  (data||[]).forEach(m=>{
+   if(knownMessageIds.has(m.id))return;
+   knownMessageIds.add(m.id);
+   messageBox.insertAdjacentHTML("beforeend",renderMessage(m));
+  });
+  if(messageBox.lastElementChild)messageBox.scrollTop=messageBox.scrollHeight;
+ };
+ if(isLive)conversationPoll=setInterval(appendNewMessages,2500);
+ const stopConversationPoll=()=>{if(conversationPoll){clearInterval(conversationPoll);conversationPoll=null}};
+ modal.querySelector("#closeConversationHistory").onclick=()=>{stopConversationPoll();modal.remove()};
  const assume=modal.querySelector("#assumeConversation");
  if(assume)assume.onclick=async()=>{
   assume.disabled=true;
   const now=new Date().toISOString();
   const {error}=await odSupabase.from("chatbot_conversations").update({status:"in_progress",assigned_to:currentUser.id,assigned_at:now,human_started_at:now,handoff_channel:"panel"}).eq("id",id).eq("professional_id",currentUser.id);
   if(error){toast("Não foi possível assumir: "+error.message);assume.disabled=false;return}
-  toast("Atendimento assumido.");modal.remove();await loadConversations();openConversationHistory(id);
+  toast("Atendimento assumido.");
+  assume.remove();
+  const statusLine=modal.querySelector(".sub");
+  if(statusLine)statusLine.textContent=statusLine.textContent.replace("waiting_human","in_progress");
+  await loadConversations();
  };
  const replyForm=modal.querySelector("#humanReplyForm");
  if(replyForm)replyForm.onsubmit=async e=>{
@@ -189,15 +210,22 @@ async function openConversationHistory(id){
   const button=replyForm.querySelector("button");button.disabled=true;
   const {error}=await odSupabase.from("chatbot_messages").insert({conversation_id:id,direction:"outbound",message_type:"text",content:value,sender_type:"professional",sender_id:currentUser.id,metadata:{sender_label:"Profissional"}});
   if(error){toast("Não foi possível enviar: "+error.message);button.disabled=false;return}
-  await odSupabase.from("chatbot_conversations").update({status:"in_progress",last_message_at:new Date().toISOString(),assigned_to:currentUser.id,assigned_at:new Date().toISOString(),handoff_channel:"panel"}).eq("id",id);
-  modal.remove();await loadConversations();openConversationHistory(id);
+  const sentAt=new Date().toISOString();
+  await odSupabase.from("chatbot_conversations").update({status:"in_progress",last_message_at:sentAt,assigned_to:currentUser.id,assigned_at:sentAt,handoff_channel:"panel"}).eq("id",id);
+  const optimisticMessage={id:"local-"+Date.now(),direction:"outbound",content:value,created_at:sentAt,sender_type:"professional"};
+  knownMessageIds.add(optimisticMessage.id);
+  messageBox.insertAdjacentHTML("beforeend",renderMessage(optimisticMessage));
+  messageBox.scrollTop=messageBox.scrollHeight;
+  field.value="";
+  button.disabled=false;
+  await loadConversations();
  };
  const closeBtn=modal.querySelector("#closeHumanConversation");
  if(closeBtn)closeBtn.onclick=async()=>{
   const {error}=await odSupabase.from("chatbot_conversations").update({status:"closed",closed_at:new Date().toISOString(),resolved_at:new Date().toISOString()}).eq("id",id).eq("professional_id",currentUser.id);
   if(error){toast("Não foi possível encerrar: "+error.message);return}
   await odSupabase.from("chatbot_messages").insert({conversation_id:id,direction:"outbound",message_type:"text",content:"Este atendimento foi encerrado pela equipe.",sender_type:"system",metadata:{}});
-  toast("Atendimento encerrado.");modal.remove();await loadConversations();
+  toast("Atendimento encerrado.");stopConversationPoll();modal.remove();await loadConversations();
  };
 }
 function openFlowTest(){

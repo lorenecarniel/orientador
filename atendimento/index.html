@@ -77,15 +77,17 @@ function templatesPage(){
 }function conditionDefaults(node){
  if(!node||node.type!=="condition")return;
  state.edges=state.edges||[];
- const routes=state.edges.filter(e=>e.source===node.id);
- const yesTarget=state.nodes.find(x=>x.type==="action")||state.nodes.find(x=>x.type==="message")||state.nodes.find(x=>x.id!==node.id);
- const noTarget=state.nodes.find(x=>x.type==="question")||state.nodes.find(x=>x.type==="message"&&x.id!==yesTarget?.id)||state.nodes.find(x=>x.id!==node.id&&x.id!==yesTarget?.id);
- if(!routes[0]&&yesTarget)state.edges.push({source:node.id,target:yesTarget.id,label:"Sim"});
- else if(routes[0]&&!/^(sim|true|yes|verdadeiro)$/i.test(String(routes[0].label||"").trim()))routes[0].label="Sim";
- if(!routes[1]&&noTarget)state.edges.push({source:node.id,target:noTarget.id,label:"Não"});
- else if(routes[1]&&!/^(não|nao|false|no|falso)$/i.test(String(routes[1].label||"").trim())){routes[1].label="Não";if(noTarget)routes[1].target=noTarget.id;}
+ let routes=state.edges.filter(e=>e.source===node.id);
+ const yesTarget=state.nodes.find(x=>x.type==="action"&&x.id!==node.id)||state.nodes.find(x=>x.type==="message"&&x.id!==node.id)||state.nodes.find(x=>x.id!==node.id);
+ let noTarget=state.nodes.find(x=>x.type==="question"&&x.id!==node.id&&x.id!==yesTarget?.id)||state.nodes.find(x=>x.type==="message"&&x.id!==node.id&&x.id!==yesTarget?.id)||state.nodes.find(x=>x.id!==node.id&&x.id!==yesTarget?.id);
+ if(!routes[0]&&yesTarget){state.edges.push({source:node.id,target:yesTarget.id,label:"Sim"});}
+ if(!routes[1]&&noTarget){state.edges.push({source:node.id,target:noTarget.id,label:"Não"});}
+ routes=state.edges.filter(e=>e.source===node.id);
+ if(routes[0]){routes[0].label="Sim";if(!state.nodes.some(x=>x.id===routes[0].target)&&yesTarget)routes[0].target=yesTarget.id;}
+ if(routes[1]){routes[1].label="Não";if(!state.nodes.some(x=>x.id===routes[1].target)&&noTarget)routes[1].target=noTarget.id;}
  if(routes.length>2)state.edges=state.edges.filter(e=>e.source!==node.id||routes.indexOf(e)<2);
 }
+
 function builderPage(){
  let n=state.nodes.find(x=>x.id===state.selected)||state.nodes[0];
  conditionDefaults(n);

@@ -97,6 +97,42 @@ function builderPage(){
  return heading("AUTOMAÇÃO","Construtor de fluxos","Crie blocos e defina para onde cada opção deve levar o paciente.",'<button class="btn primary" id="testFlow">▶ Testar fluxo</button><button class="btn" data-go="templates">Biblioteca</button>')+
  '<div class="builder"><aside class="toolbox"><h3>Adicionar bloco</h3>'+Object.keys(types).filter(t=>t!=="start").map(t=>'<button class="blocktool" data-add="'+t+'"><span>'+types[t][0]+'</span>'+types[t][1]+'</button>').join("")+'</aside><section class="canvas"><div class="canvashead"><input id="flowNameInput" aria-label="Nome do fluxo" value="'+attr(state.flowName)+'" style="max-width:65%;border:1px solid var(--line);border-radius:8px;padding:8px;font-weight:700;color:var(--navy)"><button class="btn primary" id="saveFlow" '+(state.flowLoading?'disabled':'')+'>'+(state.flowLoading?'Carregando...':'Salvar rascunho')+'</button></div>'+(state.flowLoading?'<div class="empty">Carregando seu fluxo salvo...</div>':'<div class="nodes">'+state.nodes.map((x,i)=>'<div class="node '+(x.id===state.selected?'selected':'')+'" data-node="'+x.id+'"><div class="ntop"><span class="nicon">'+(types[x.type]?.[0]||"•")+'</span>'+(types[x.type]?.[1]||"Bloco")+' <span style="color:#9aa8ad;font-weight:500">· '+esc(x.title)+'</span></div><p>'+esc(x.text)+'</p>'+((state.edges||[]).filter(e=>e.source===x.id).map(e=>'<small style="display:block;margin:7px 0 0 34px;color:var(--green)">↳ '+esc(e.label)+' → '+esc(state.nodes.find(y=>y.id===e.target)?.title||"Destino não definido")+'</small>').join(""))+'</div>'+(i<state.nodes.length-1?'<div class="connector"></div>':'')).join("")+'</div>')+'</section><aside class="properties"><h3>Propriedades do bloco</h3>'+(n?'<div class="field"><label>Tipo de bloco</label><input value="'+(types[n.type]?.[1]||"Bloco")+'" disabled></div><div class="field"><label>Nome interno</label><input id="nodeTitle" value="'+attr(n.title)+'"></div><div class="field"><label>Mensagem / descrição</label><textarea id="nodeText">'+esc(n.text)+'</textarea></div>'+conditionEditor+routeEditor+'<div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn primary" id="applyNode">Aplicar</button><button class="btn" id="deleteNode" '+(n.type==="start"?'disabled':'')+'>Excluir</button></div>':'Selecione um bloco')+'<div class="note" style="margin-top:16px">Nos blocos de Opções e Condição, adicione opções e escolha visualmente o bloco de destino. As conexões são salvas junto com o fluxo no Supabase.</div></aside></div>'
 }
+
+async function createTestConversation(){
+ if(!currentUser||!odSupabase)throw new Error("Faça login para registrar o teste.");
+ let botId=state.chatbotId;
+ if(!botId){const result=await odSupabase.from("chatbots").select("id").eq("professional_id",currentUser.id).order("created_at",{ascending:true}).limit(1).maybeSingle();if(result.error)throw result.error;if(!result.data)throw new Error("Salve ou carregue o fluxo antes de testar.");botId=result.data.id;state.chatbotId=botId;}
+ const result=await odSupabase.from("chatbot_conversations").insert({professional_id:currentUser.id,chatbot_id:botId,flow_id:state.flowId||null,channel:"web",status:"open",current_node_id:(state.nodes.find(n=>n.type==="start")||state.nodes[0])?.id||null,variables:{},is_test:true}).select("id").single();
+ if(result.error)throw result.error;state.testConversationId=result.data.id;return result.data.id;
+}
+async function saveTestMessage(direction,content,node,variables){
+ if(!state.testConversationId||!odSupabase)return;
+ const result=await odSupabase.from("chatbot_messages").insert({conversation_id:state.testConversationId,direction,message_type:"text",content:String(content||""),metadata:{is_test:true,node_id:node?.id||null,node_type:node?.type||null,variables:variables||{}}});
+ if(result.error){console.error("Falha ao salvar mensagem de teste",result.error);return}
+ const patch={last_message_at:new Date().toISOString(),current_node_id:node?.id||null,variables:variables||{}};
+ if(variables?.nome_paciente)patch.patient_name=String(variables.nome_paciente);
+ if(node?.type==="handoff")patch.status="waiting_human";
+ if(node?.type==="end"){patch.status="closed";patch.closed_at=new Date().toISOString();}
+ const updated=await odSupabase.from("chatbot_conversations").update(patch).eq("id",state.testConversationId);
+ if(updated.error)console.error("Falha ao atualizar conversa de teste",updated.error);
+}
+async function loadConversations(){
+ if(!currentUser||!odSupabase)return;
+ const result=await odSupabase.from("chatbot_conversations").select("id,patient_name,channel,status,is_test,last_message_at,started_at,flow_id").eq("professional_id",currentUser.id).order("last_message_at",{ascending:false}).limit(100);
+ if(result.error){toast("Não foi possível carregar conversas: "+result.error.message);return}
+ state.conversations=result.data||[];render();
+}
+async function openConversationHistory(id){
+ const first=await odSupabase.from("chatbot_conversations").select("id,patient_name,channel,status,is_test,started_at,last_message_at,variables").eq("id",id).single();
+ if(first.error){toast("Erro ao abrir conversa: "+first.error.message);return}
+ const second=await odSupabase.from("chatbot_messages").select("id,direction,content,created_at,metadata").eq("conversation_id",id).order("created_at",{ascending:true});
+ if(second.error){toast("Erro ao carregar mensagens: "+second.error.message);return}
+ let modal=document.querySelector("#conversationHistoryModal");if(modal)modal.remove();
+ modal=document.createElement("div");modal.id="conversationHistoryModal";modal.style.cssText="position:fixed;inset:0;background:#102b3b88;z-index:60;display:grid;place-items:center;padding:16px";
+ const conversation=first.data,messages=second.data||[];
+ modal.innerHTML='<section class="panel" style="width:min(640px,100%);max-height:85vh;overflow:auto;padding:20px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><div class="eyebrow">'+(conversation.is_test?"SIMULAÇÃO":"ATENDIMENTO")+'</div><h2 style="margin:4px 0">'+esc(conversation.patient_name||"Paciente não identificado")+'</h2></div><button class="btn" id="closeConversationHistory">Fechar</button></div><p class="sub">Início: '+new Date(conversation.started_at).toLocaleString("pt-BR")+' · Canal: '+esc(conversation.channel)+' · Status: '+esc(conversation.status)+'</p><div style="display:grid;gap:9px;margin-top:16px">'+messages.map(m=>'<div style="justify-self:'+(m.direction==="inbound"?"end":"start")+';max-width:85%;background:'+(m.direction==="inbound"?"#e2f5e9":"var(--bg)")+';padding:10px 12px;border-radius:12px"><small style="color:var(--muted)">'+(m.direction==="inbound"?"Paciente":"Chatbot")+' · '+new Date(m.created_at).toLocaleString("pt-BR")+'</small><div style="white-space:pre-wrap;margin-top:4px">'+esc(m.content)+'</div></div>').join("")+'</div><details style="margin-top:16px"><summary>Variáveis coletadas</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(JSON.stringify(conversation.variables||{},null,2))+'</pre></details></section>';
+ document.body.appendChild(modal);modal.querySelector("#closeConversationHistory").onclick=()=>modal.remove();
+}
 function openFlowTest(){
  const host=$("#page");if(!host)return;
  const previous=host.querySelector("#flowTestPanel");if(previous){previous.remove();return}

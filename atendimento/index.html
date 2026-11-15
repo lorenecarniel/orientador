@@ -147,8 +147,11 @@ async function saveTestMessage(direction,content,node,variables){
  const updated=await odSupabase.from("chatbot_conversations").update(patch).eq("id",state.testConversationId);
  if(updated.error)console.error("Falha ao atualizar conversa de teste",updated.error);
 }
+let conversationsLoading=false;
 async function loadConversations(){
- if(!currentUser||!odSupabase)return;
+ if(!currentUser||!odSupabase||conversationsLoading)return;
+ conversationsLoading=true;
+ const preservedFilters={search:$("#conversationSearch")?.value||"",status:$("#conversationStatusFilter")?.value||"",channel:$("#conversationChannelFilter")?.value||""};
  const result=await odSupabase.from("chatbot_conversations").select("id,patient_name,channel,status,is_test,last_message_at,started_at,flow_id,assigned_to,assigned_at,handoff_channel").eq("professional_id",currentUser.id).order("last_message_at",{ascending:false}).limit(100);
  if(result.error){toast("Não foi possível carregar conversas: "+result.error.message);return}
  state.conversations=result.data||[];
@@ -167,6 +170,11 @@ async function loadConversations(){
   }
  }
  render();
+ if($("#conversationSearch"))$("#conversationSearch").value=preservedFilters.search;
+ if($("#conversationStatusFilter"))$("#conversationStatusFilter").value=preservedFilters.status;
+ if($("#conversationChannelFilter"))$("#conversationChannelFilter").value=preservedFilters.channel;
+ filterConversationRows();
+ conversationsLoading=false;
 }
 async function openConversationHistory(id){
  const first=await odSupabase.from("chatbot_conversations").select("id,patient_name,channel,status,is_test,started_at,last_message_at,variables,assigned_to,handoff_channel").eq("id",id).single();
@@ -425,6 +433,7 @@ function showPanel(user){
  if($("#userAvatar"))$("#userAvatar").textContent=(user.user_metadata?.full_name||user.email||"OD").slice(0,2).toUpperCase();
  if($("#logoutBtn"))$("#logoutBtn").onclick=async()=>{const {error}=await odSupabase.auth.signOut();if(error)toast("Não foi possível sair: "+error.message)};
  render();
+ if(!window.odConversationRefreshTimer){window.odConversationRefreshTimer=setInterval(()=>{if(currentUser&&state.page==="conversations"&&!document.querySelector("#conversationHistoryModal"))loadConversations()},12000)}
 }
 async function bootAuth(){
  $(".app").classList.add("auth-locked");

@@ -8,7 +8,7 @@
 - Simulação visual da arquitetura e pontos de integração.
 - Migration inicial Supabase em `supabase/migrations/001_chatbot.sql`.
 
-## Como testar
+## Configuração Supabase\n\nO arquivo `supabase-config.js` contém apenas a Project URL e a publishable key pública do projeto OrientaDor. O painel inicializa o SDK `supabase-js` no navegador, mas ainda não consulta nem grava tabelas. A publishable key só é segura no frontend quando as políticas RLS estiverem corretamente aplicadas. Nunca adicionar `service_role`, secret keys ou senha do banco a este repositório.\n\n## Como testar
 Abra `atendimento/index.html` em um navegador ou publique o diretório no GitHub Pages.
 Os rascunhos e configurações desta primeira versão são salvos em localStorage do navegador.
 

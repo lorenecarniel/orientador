@@ -586,11 +586,11 @@ async function openConsultationWorkspace(appointment){
   if(matches.length===1)patientId=matches[0].id;
   if(!patientId&&appointment.patient_email){const {data}=await odSupabase.from("patients").select("id").eq("professional_id",currentUser.id).ilike("email",appointment.patient_email).limit(2);matches=data||[];if(matches.length>1){toast("Há mais de um paciente com este e-mail. Vincule o correto antes de iniciar.");go("agenda");return}if(matches.length===1)patientId=matches[0].id}
   if(!patientId){const {data,error}=await odSupabase.from("patients").insert({professional_id:currentUser.id,full_name:appointment.patient_name,phone:appointment.patient_phone||null,email:appointment.patient_email||null}).select("id").single();if(error){toast("Erro ao criar prontuário: "+error.message);go("agenda");return}patientId=data.id}
-  const {error}=await odSupabase.from("appointments").update({patient_id:patientId}).eq("id",appointment.id).eq("professional_id",currentUser.id);if(error){toast("Não foi possível vincular o paciente ao agendamento: "+error.message);modal.classList.add("hidden");return}
+  const {error}=await odSupabase.from("appointments").update({patient_id:patientId}).eq("id",appointment.id).eq("professional_id",currentUser.id);if(error){toast("Não foi possível vincular o paciente ao agendamento: "+error.message);go("agenda");return}
  }
  modal.dataset.patientId=patientId;
  const {data:p,error:pError}=await odSupabase.from("patients").select("*").eq("id",patientId).eq("professional_id",currentUser.id).single();
- if(pError||!p){toast("Não foi possível carregar os dados do paciente.");modal.classList.add("hidden");return}
+ if(pError||!p){toast("Não foi possível carregar os dados do paciente.");go("agenda");return}
  $("#cpBirth").value=p.birth_date||"";$("#cpAge").value=p.birth_date?String(Math.max(0,Math.floor((Date.now()-new Date(p.birth_date+"T00:00:00").getTime())/31557600000)))+" anos":"";$("#cpSex").value=p.sex||"";$("#cpOccupation").value=p.occupation||"";$("#cpFamily").value=p.family_history||"";$("#cpMedical").value=p.medical_history||"";$("#cpAllergies").value=p.allergies||"";$("#cpMedications").value=p.medications||"";$("#cpNotes").value=p.notes||"";
  $("#ccComplaint").value="";$("#ccNotes").value=appointment.notes||"";$("#ccAssessment").value="";$("#ccPlan").value="";$("#ccAttention").value="";$("#ccFiles").value="";$("#ccFilesList").textContent="";
  const {data:records,error}=await odSupabase.from("consultation_records").select("id,consultation_date,consultation_type,chief_complaint,clinical_history,evolution,assessment,plan,general_notes,status").eq("patient_id",patientId).eq("professional_id",currentUser.id).order("consultation_date",{ascending:false});

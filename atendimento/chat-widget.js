@@ -69,7 +69,22 @@
   function bubble(text, who) {
     const el = document.createElement("div");
     el.className = "od-bubble " + (who === "user" ? "od-user" : "od-bot");
-    el.textContent = String(text || "");
+    const value = String(text || "");
+    const urlPattern = /(https?:\/\/[^\s]+)/g;
+    let cursor = 0;
+    let match;
+    while ((match = urlPattern.exec(value)) !== null) {
+      el.appendChild(document.createTextNode(value.slice(cursor, match.index)));
+      const link = document.createElement("a");
+      link.href = match[0].replace(/[),.]+$/, "");
+      link.textContent = link.href;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.style.cssText = "color:#075b91;text-decoration:underline;overflow-wrap:anywhere";
+      el.appendChild(link);
+      cursor = match.index + match[0].length;
+    }
+    el.appendChild(document.createTextNode(value.slice(cursor)));
     log.appendChild(el);
     log.scrollTop = log.scrollHeight;
   }

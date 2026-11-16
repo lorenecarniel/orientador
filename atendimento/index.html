@@ -435,7 +435,12 @@ async function loadAvailableAppointmentSlots(){
  grid.querySelectorAll("[data-slot-value]").forEach(button=>button.onclick=()=>{hidden.value=button.dataset.slotValue;grid.querySelectorAll("[data-slot-value]").forEach(item=>{const active=item===button;item.style.background=active?"#1685c5":"#eeeeee";item.style.color=active?"#fff":"#222";item.style.borderColor=active?"#0875b5":"#b8b8b8";item.setAttribute("aria-pressed",active?"true":"false")})});
  if(hint)hint.textContent="Horários disponíveis em "+dateLabel+" · "+slots.length+" opção(ões)";
 }
-async function loadAppointments(){
+async function renderAgendaConfigWeek(availability=[],blocks=[]){
+ const root=$("#agendaConfigWeek");if(!root)return;
+ const names=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+ root.innerHTML=names.map((name,day)=>{const av=availability.filter(a=>Number(a.weekday)===day).map(a=>'<div class="agenda-config-slot available">'+a.start_time.slice(0,5)+'–'+a.end_time.slice(0,5)+'<br>Atendimento</div>').join("");const blocked=blocks.filter(b=>new Date(b.starts_at).getDay()===day).map(b=>'<div class="agenda-config-slot blocked">'+new Date(b.starts_at).toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})+' · '+new Date(b.starts_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})+'–'+new Date(b.ends_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})+'<br>'+esc(b.reason||"Bloqueado")+'</div>').join("");return '<div class="agenda-config-day"><b>'+name+'</b>'+(av||"")+(blocked||"")+(!av&&!blocked?'<span class="agenda-config-empty">Sem configuração</span>':"")+'</div>'}).join("");
+}
+function loadAppointments(){
  if(!currentUser||!odSupabase)return;
  const date=$("#agendaDate")?.value||localDateKey(new Date());
  const selected=new Date(date+"T00:00:00");
@@ -449,13 +454,14 @@ async function loadAppointments(){
  $("#appointmentCount").textContent=items.length;
  const upcoming=items.find(x=>new Date(x.starts_at)>new Date());$("#nextAppointment").textContent=upcoming?new Date(upcoming.starts_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):"—";
  const {data:blocks,error:blockError}=await odSupabase.from("professional_calendar_blocks").select("id,starts_at,ends_at,reason").eq("professional_id",currentUser.id).gte("starts_at",start.toISOString()).lt("starts_at",end.toISOString()).order("starts_at");
- if(!blockError){$("#calendarBlocksList").innerHTML=blocks.length?blocks.map(b=>'<div class="listrow"><div><b>'+esc(new Date(b.starts_at).toLocaleDateString("pt-BR"))+' · '+esc(new Date(b.starts_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}))+'–'+esc(new Date(b.ends_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}))+'</b><small>'+esc(b.reason||"Horário bloqueado")+'</small></div><button class="btn" data-delete-calendar-block="'+b.id+'">Desbloquear</button></div>').join(""):'<div class="empty">Nenhum bloqueio neste período.</div>'}
+ if(!blockError&&$("#calendarBlocksList")){$("#calendarBlocksList").innerHTML=blocks.length?blocks.map(b=>'<div class="listrow"><div><b>'+esc(new Date(b.starts_at).toLocaleDateString("pt-BR"))+' · '+esc(new Date(b.starts_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}))+'–'+esc(new Date(b.ends_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}))+'</b><small>'+esc(b.reason||"Horário bloqueado")+'</small></div><button class="btn" data-delete-calendar-block="'+b.id+'">Desbloquear</button></div>').join(""):'<div class="empty">Nenhum bloqueio neste período.</div>'}
  renderAgendaCalendar(items,date,blockError?[]:blocks);
  const visible=agendaView==="day"?items:items.filter(x=>localDateKey(new Date(x.starts_at))===date);
  $("#agendaAppointments").innerHTML=visible.length?visible.map(x=>'<div class="listrow"><div><b>'+esc(new Date(x.starts_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}))+' · '+esc(x.patient_name)+'</b><small>'+esc(new Date(x.starts_at).toLocaleDateString("pt-BR"))+' · '+esc(x.patient_phone||"Sem telefone")+' · '+(x.source==="chatbot"?"Agendado pelo bot":"Agendado pelo profissional")+'</small></div><div style="display:flex;gap:7px;align-items:center"><span class="pill">'+(x.status==="confirmed"?"Confirmado":esc(x.status))+'</span><button class="btn" data-cancel-appointment="'+x.id+'">Cancelar</button></div></div>').join(""):'<div class="empty">Nenhuma consulta '+(agendaView==="day"?"para este dia.":"neste dia selecionado.")+'</div>';
 
  const {data:availability,error:avError}=await odSupabase.from("professional_availability").select("id,weekday,start_time,end_time,slot_interval_minutes").eq("professional_id",currentUser.id).eq("is_active",true).order("weekday").order("start_time");
  if(!avError){$("#availabilityCount").textContent=availability.length;$("#availabilityList").innerHTML=availability.length?'<div class="availability-week-grid">'+["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map((day,i)=>{const entries=availability.filter(a=>Number(a.weekday)===i);return '<div class="availability-day"><b>'+day+'</b>'+(entries.length?entries.map(a=>'<div class="availability-time"><span>'+a.start_time.slice(0,5)+'–'+a.end_time.slice(0,5)+'</span><button class="icon-action delete-action" title="Remover" aria-label="Remover" data-delete-availability="'+a.id+'">×</button></div>').join(""):'<small>—</small>')+'</div>'}).join("")+'</div>':'<div class="empty">Nenhum horário configurado.</div>'}
+ renderAgendaConfigWeek(avError?[]:availability,blockError?[]:blocks);
  bindAgendaActions();
 }
 function bindAgendaActions(){
@@ -530,7 +536,7 @@ async function loadProfessionalProfile(){
  if(!currentUser||!odSupabase)return;
  $("#profileEmail").textContent=currentUser.email||"";
  $("#profileId").textContent=currentUser.id;
- const {data,error}=await odSupabase.from("professional_profiles").select("full_name,professional_type,specialty,phone,city,public_bio,avatar_url").eq("id",currentUser.id).maybeSingle();
+ const {data,error}=await odSupabase.from("professional_profiles").select("full_name,professional_type,specialty,phone,city,public_bio,avatar_url,accepted_insurances").eq("id",currentUser.id).maybeSingle();
  if(error){showProfileFeedback("Não foi possível carregar o perfil. Verifique se executou a migration 002 no Supabase. Detalhe: "+error.message,true);return}
  const v=data||{};
  $("#profileName").value=v.full_name||currentUser.user_metadata?.full_name||"";
@@ -539,6 +545,7 @@ async function loadProfessionalProfile(){
  $("#profilePhone").value=v.phone||"";
  $("#profileCity").value=v.city||"";
  $("#profileBio").value=v.public_bio||"";
+ $("#profileInsurances").value=(v.accepted_insurances||[]).join(", ");
  const preview=$("#profileAvatarPreview");if(preview){preview.innerHTML=v.avatar_url?'<img src="'+attr(v.avatar_url)+'" alt="Foto do profissional" style="width:100%;height:100%;object-fit:cover">':(v.full_name||currentUser.email||"OD").slice(0,2).toUpperCase()}
  updateHeaderAvatar(v.avatar_url,v.full_name||currentUser.user_metadata?.full_name||currentUser.email||"OD");
 }
@@ -571,7 +578,7 @@ function showProfileFeedback(message,isError=false){
 async function saveProfessionalProfile(){
  if(!currentUser||!odSupabase)return;
  const button=$("#saveProfile");button.disabled=true;button.textContent="Salvando...";
- const profile={id:currentUser.id,full_name:$("#profileName").value.trim(),professional_type:$("#profileType").value.trim()||null,specialty:$("#profileSpecialty").value.trim()||null,phone:$("#profilePhone").value.trim()||null,city:$("#profileCity").value.trim()||null,public_bio:$("#profileBio").value.trim()||null};
+ const profile={id:currentUser.id,full_name:$("#profileName").value.trim(),professional_type:$("#profileType").value.trim()||null,specialty:$("#profileSpecialty").value.trim()||null,phone:$("#profilePhone").value.trim()||null,city:$("#profileCity").value.trim()||null,public_bio:$("#profileBio").value.trim()||null,accepted_insurances:$("#profileInsurances").value.split(",").map(x=>x.trim()).filter(Boolean)};
  try{
   const {error}=await odSupabase.from("professional_profiles").upsert(profile,{onConflict:"id"});
   if(error)throw error;

@@ -29,22 +29,24 @@
 /* A navegação principal já existe no menu do workspace; não duplicar acima do conteúdo. */
 .navdrawer{display:none!important}
 
-/* Visão semanal em grade horária, alinhada ao calendário */
-.agenda-config-hour-grid{width:100%;min-width:760px;overflow:hidden;border:1px solid var(--line);border-radius:10px;background:#fff}
+
+/* Cards contínuos por faixa de disponibilidade, com recortes nos bloqueios */
+.agenda-config-hour-grid{width:100%;min-width:760px;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
 .agenda-config-week{display:block!important;overflow-x:auto;padding:0!important}
-.agenda-config-hour-head,.agenda-config-hour-row{display:grid;grid-template-columns:58px repeat(7,minmax(88px,1fr))}
-.agenda-config-hour-head{position:sticky;top:0;background:#f8fafc;z-index:1;border-bottom:1px solid var(--line)}
+.agenda-config-hour-head{display:grid;grid-template-columns:58px repeat(7,minmax(88px,1fr));background:#f8fafc;border-bottom:1px solid var(--line)}
 .agenda-config-hour-day{padding:9px 7px;text-align:center;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:3px;color:var(--navy)}
 .agenda-config-hour-day small{font-size:10px;color:var(--muted)}
 .agenda-config-hour-day b{font-size:12px}
 .agenda-config-gutter{border-right:1px solid var(--line)}
-.agenda-config-hour-row{min-height:42px;border-bottom:1px solid #edf1f4}
-.agenda-config-hour-label{font-size:10px;color:var(--muted);text-align:center;padding:5px 3px 0;border-right:1px solid var(--line)}
-.agenda-config-hour-cell{min-width:0;padding:3px;border-left:1px solid #edf1f4;display:flex;flex-direction:column;gap:2px}
-.agenda-config-hour-slot{font-size:9px;line-height:1.25;padding:4px 5px;border-radius:5px;overflow-wrap:anywhere}
+.agenda-config-hour-body{display:grid;grid-template-columns:58px repeat(7,minmax(88px,1fr))}
+.agenda-config-hour-axis{display:grid;grid-template-rows:repeat(14,42px)}
+.agenda-config-hour-label{font-size:10px;color:var(--muted);text-align:center;padding:5px 3px 0;border-right:1px solid var(--line);border-bottom:1px solid #edf1f4}
+.agenda-config-hour-day-column{height:588px;position:relative;min-width:0;border-left:1px solid #edf1f4;background:repeating-linear-gradient(to bottom,transparent 0,transparent 41px,#edf1f4 41px,#edf1f4 42px)}
+.agenda-config-hour-slot{position:absolute;left:3px;right:3px;z-index:1;box-sizing:border-box;font-size:9px;line-height:1.25;padding:4px 5px;border-radius:5px;overflow:hidden;overflow-wrap:anywhere}
 .agenda-config-hour-slot.available{background:#e9f6f0;color:#176044;border-left:3px solid #24966d}
 .agenda-config-hour-slot.blocked{background:#fff2df;color:#805015;border-left:3px solid #d58a22}
 @media(max-width:700px){.agenda-config-hour-grid{min-width:760px}.agenda-config-week{overflow-x:auto}}
+.agenda-config-week{overflow-x:auto}}
 </style></head>
 <body>
 <div class="app">
@@ -469,18 +471,46 @@ function renderAgendaConfigWeek(availability=[],blocks=[]){
  const selected=new Date(($("#agendaDate")?.value||localDateKey(new Date()))+"T12:00:00");
  const first=startOfWeek(selected);
  const days=Array.from({length:7},(_,i)=>{const d=new Date(first);d.setDate(d.getDate()+i);return d});
- const hours=Array.from({length:14},(_,i)=>i+7);
- const minutes=value=>{const p=String(value||"00:00").split(":");return Number(p[0])*60+Number(p[1]||0)};
- const time=value=>new Date(value).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
- root.innerHTML='<div class="agenda-config-hour-grid"><div class="agenda-config-hour-head"><div class="agenda-config-gutter"></div>'+days.map((d,i)=>'<div class="agenda-config-hour-day"><small>'+names[i]+'</small><b>'+d.getDate()+'</b></div>').join("")+'</div>'+
- hours.map(hour=>'<div class="agenda-config-hour-row"><div class="agenda-config-hour-label">'+String(hour).padStart(2,"0")+':00</div>'+days.map(d=>{
-  const day=d.getDay(),key=localDateKey(d),from=hour*60,to=from+60;
-  const av=availability.filter(a=>Number(a.weekday)===day&&minutes(a.start_time)<to&&minutes(a.end_time)>from);
-  const blocked=blocks.filter(b=>localDateKey(new Date(b.starts_at))===key&&new Date(b.starts_at).getHours()===hour);
-  const avHtml=av.map(a=>{const start=minutes(a.start_time),end=minutes(a.end_time);const label=start>=from&&start<to?a.start_time.slice(0,5)+'–'+a.end_time.slice(0,5)+' · Atendimento':(start<from&&end>from?'Atendimento': '');return '<div class="agenda-config-hour-slot available" title="'+a.start_time.slice(0,5)+'–'+a.end_time.slice(0,5)+' Atendimento">'+(label||'Disponível')+'</div>'}).join("");
-  const blockHtml=blocked.map(b=>'<div class="agenda-config-hour-slot blocked" title="'+time(b.starts_at)+'–'+time(b.ends_at)+' '+esc(b.reason||"Bloqueado")+'">'+time(b.starts_at)+'–'+time(b.ends_at)+' · '+esc(b.reason||"Bloqueio")+'</div>').join("");
-  return '<div class="agenda-config-hour-cell">'+avHtml+blockHtml+'</div>';
- }).join("")+'</div>').join("")+'</div>';
+ const startOfDay=7*60,minutesPerHour=60,rowHeight=42,totalHeight=14*rowHeight;
+ const mins=value=>{const p=String(value||"00:00").split(":");return Number(p[0])*60+Number(p[1]||0)};
+ const clock=value=>new Date(value).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+ const card=(kind,top,height,label,title)=>'<div class="agenda-config-hour-slot '+kind+'" style="top:'+top+'px;height:'+Math.max(18,height)+'px" title="'+esc(title)+'">'+esc(label)+'</div>';
+ const head='<div class="agenda-config-hour-head"><div class="agenda-config-gutter"></div>'+days.map((d,i)=>'<div class="agenda-config-hour-day"><small>'+names[i]+'</small><b>'+d.getDate()+'</b></div>').join("")+'</div>';
+ const body='<div class="agenda-config-hour-body"><div class="agenda-config-hour-axis">'+Array.from({length:14},(_,i)=>'<div class="agenda-config-hour-label">'+String(i+7).padStart(2,"0")+':00</div>').join("")+'</div>'+
+ days.map(d=>{
+  const day=d.getDay(),key=localDateKey(d);
+  const dayBlocks=blocks.filter(b=>localDateKey(new Date(b.starts_at))===key).map(b=>({start:new Date(b.starts_at).getHours()*60+new Date(b.starts_at).getMinutes(),end:new Date(b.ends_at).getHours()*60+new Date(b.ends_at).getMinutes(),reason:b.reason||"Bloqueio"})).filter(b=>b.end>b.start);
+  const ranges=availability.filter(a=>Number(a.weekday)===day).map(a=>({start:mins(a.start_time),end:mins(a.end_time)})).filter(x=>x.end>x.start);
+  const cards=[];
+  ranges.forEach(range=>{
+   let pieces=[range];
+   dayBlocks.forEach(block=>{
+    pieces=pieces.flatMap(piece=>{
+     if(block.end<=piece.start||block.start>=piece.end)return [piece];
+     const result=[];
+     if(block.start>piece.start)result.push({start:piece.start,end:block.start});
+     if(block.end<piece.end)result.push({start:block.end,end:piece.end});
+     return result;
+    });
+   });
+   pieces.forEach(piece=>{
+    const start=Math.max(piece.start,startOfDay),end=Math.min(piece.end,startOfDay+totalHeight/rowHeight*60);
+    if(end<=start)return;
+    const top=(start-startOfDay)/60*rowHeight,height=(end-start)/60*rowHeight;
+    const label=(String(Math.floor(start/60)).padStart(2,"0")+":"+String(start%60).padStart(2,"0"))+"–"+(String(Math.floor(end/60)).padStart(2,"0")+":"+String(end%60).padStart(2,"0"))+" · Atendimento";
+    cards.push(card("available",top,height,label,label));
+   });
+  });
+  dayBlocks.forEach(block=>{
+   const start=Math.max(block.start,startOfDay),end=Math.min(block.end,startOfDay+14*60);
+   if(end<=start)return;
+   const top=(start-startOfDay)/60*rowHeight,height=(end-start)/60*rowHeight;
+   const label=String(Math.floor(start/60)).padStart(2,"0")+":"+String(start%60).padStart(2,"0")+"–"+String(Math.floor(end/60)).padStart(2,"0")+":"+String(end%60).padStart(2,"0")+" · "+block.reason;
+   cards.push(card("blocked",top,height,label,label));
+  });
+  return '<div class="agenda-config-hour-day-column">'+cards.join("")+'</div>';
+ }).join("")+'</div>';
+ root.innerHTML='<div class="agenda-config-hour-grid">'+head+body+'</div>';
 }
 function renderAgendaAppointmentSidebar(items){
  const root=$("#agendaAppointments");if(!root)return;

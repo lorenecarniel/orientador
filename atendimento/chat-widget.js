@@ -76,6 +76,7 @@
     return data;
   }
   function showResult(data) {
+    if (Array.isArray(data.preceding_messages)) data.preceding_messages.forEach((message) => bubble(message, "bot"));
     if (data.message) bubble(data.message, "bot");
     if (data.professional_phone) professionalPhone = String(data.professional_phone).replace(/\\D/g, "");
     choices.replaceChildren();

@@ -92,11 +92,10 @@ const initialEdges=[
 {source:"main_menu",target:"consult_info",label:"Informações da consulta"},
 {source:"main_menu",target:"handoff",label:"Falar com atendente"},
 {source:"main_menu",target:"end",label:"Sair"},
-{source:"appointment",target:"end",label:"Após o agendamento"},
-{source:"about",target:"end",label:"Voltar ao menu / finalizar"},
-{source:"location",target:"end",label:"Voltar ao menu / finalizar"},
-{source:"consult_info",target:"end",label:"Voltar ao menu / finalizar"},
-{source:"handoff",target:"end",label:"Atendimento concluído"}
+{source:"appointment",target:"main_menu",label:"Após o agendamento"},
+{source:"about",target:"main_menu",label:"Voltar ao menu principal"},
+{source:"location",target:"main_menu",label:"Voltar ao menu principal"},
+{source:"consult_info",target:"main_menu",label:"Voltar ao menu principal"}
 ];
 const templates=[
 {id:"health",icon:"✚",name:"Atendimento inicial — Saúde",desc:"Boas-vindas, identificação, menu principal e direcionamento para os principais serviços.",nodes:initialNodes},

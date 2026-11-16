@@ -183,7 +183,10 @@ async function advance(session: Session, definition: Definition, firstNode: Node
     }
     if (node.type === "question" || node.type === "options") {
       const choices = node.type === "options"
-        ? (definition.edges || []).filter((edge) => edge.source === node!.id).map((edge) => ({ label: edge.label || "", value: edge.label || "" }))
+        ? (definition.edges || []).filter((edge) => edge.source === node!.id).map((edge) => ({
+          label: edge.target === "consult_info" ? "+ Informações atendimentos" : (edge.label || ""),
+          value: edge.label || "",
+        }))
         : [];
       await addMessage(session.id, "outbound", content, { node_id: node.id, node_type: node.type, choices });
       await db.from("chatbot_conversations").update({ current_node_id: node.id, variables: vars, last_message_at: new Date().toISOString() }).eq("id", session.id);

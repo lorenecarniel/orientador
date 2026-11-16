@@ -1394,8 +1394,8 @@
 
             <sc-if value="{{ noProfessionals }}" hint-placeholder-val="{{ false }}">
               <div style="border:1px dashed var(--line,#E6E9EC); border-radius:18px; padding:26px; display:flex; flex-direction:column; gap:8px;">
-                <h2 style="margin:0; font-size:1.06em; font-weight:700; color:var(--brand,#01355E);">Nenhum profissional com esses filtros</h2>
-                <p style="margin:0; font-size:0.95em; line-height:1.6; color:var(--ink2,#4A6472);">Tente outra cidade, especialidade ou modalidade.</p>
+                <h2 style="margin:0; font-size:1.06em; font-weight:700; color:var(--brand,#01355E);">{{ directoryMessage }}</h2>
+                <p style="margin:0; font-size:0.95em; line-height:1.6; color:var(--ink2,#4A6472);">Quando um profissional publicar o cadastro, ele aparecerá aqui. Ajuste os filtros ou consulte novamente em instantes.</p>
               </div>
             </sc-if>
 
@@ -2093,10 +2093,10 @@ class Component extends DCLogic {
           accepted_insurances: plans
         };
       });
-      this.setState({ directoryLoaded: true, directoryError: '' });
+      this.setState({ directoryLoaded: true, directoryError: '' }, () => this.readHash());
     } catch (error) {
       console.error('[OrientaDor] Falha ao carregar profissionais públicos:', error);
-      this.setState({ directoryLoaded: true, directoryError: 'Não foi possível carregar os profissionais agora.' });
+      this.setState({ directoryLoaded: true, directoryError: 'Não foi possível carregar os profissionais agora.' }, () => this.readHash());
     }
   }
 componentDidMount() {
@@ -3186,7 +3186,7 @@ componentDidMount() {
           check: on ? 'check' : ''
         };
       }),
-      professionals, noProfessionals: professionals.length === 0, toast: s.toast,
+      professionals, noProfessionals: professionals.length === 0, directoryMessage: s.directoryError || (s.directoryLoaded ? 'Nenhum profissional publicou o perfil nesta página.' : 'Carregando profissionais...'), toast: s.toast,
 
       proName: pro.name, proProfession: pro.profession, proRegistration: pro.registration,
       proInitials: this.initials(pro.name), proDescription: pro.description,

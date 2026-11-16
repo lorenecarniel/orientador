@@ -54,6 +54,26 @@ const interpolate = (value: string, vars: Record<string, unknown>, professionalN
     return String(vars[key] ?? "");
   });
 
+function buildAboutMessage(vars: Record<string, unknown>, professionalName: string) {
+  const lines = [
+    "Sobre " + (professionalName || "o profissional"),
+    vars.professional_type ? "Área de atuação: " + vars.professional_type : "",
+    vars.specialty ? "Especialidade: " + vars.specialty : "",
+    vars.public_bio ? String(vars.public_bio) : "",
+    vars.city ? "Cidade: " + vars.city : "",
+  ].filter(Boolean);
+  return lines.length > 1 ? lines.join("\\n\\n") : "As informações de apresentação deste profissional ainda não foram cadastradas.";
+}
+
+function buildLocationMessage(vars: Record<string, unknown>) {
+  const address = String(vars.address || "").trim();
+  const city = String(vars.city || "").trim();
+  if (!address && !city) return "A localização do consultório ainda não foi cadastrada pelo profissional.";
+  const query = [address, city].filter(Boolean).join(", ");
+  const mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
+  return "Localização do consultório:\\n" + query + "\\n\\nAbrir no Google Maps:\\n" + mapsUrl;
+}
+
 async function addMessage(conversationId: string, direction: "inbound" | "outbound", content: string, metadata: Record<string, unknown> = {}) {
   const { error } = await db.from("chatbot_messages").insert({
     conversation_id: conversationId,
@@ -94,7 +114,27 @@ async function advance(session: Session, definition: Definition, firstNode: Node
   const precedingMessages: string[] = [];
   let steps = 0;
   while (node && steps++ < 40) {
-    const content = interpolate(node.text || node.title || "", vars, professionalName);
+    let content = interpolate(node.text || node.title || "", vars, professionalName);
+    if (node.id === "about") content = buildAboutMessage(vars, professionalName);
+    if (node.id === "location") content = buildLocationMessage(vars);
+    if (node.id === "consult_info") {
+      const { data: services, error: servicesError } = await db.from("appointment_types")
+        .select("name,payment_options,duration_minutes")
+        .eq("professional_id", session.professional_id).eq("is_active", true).order("name");
+      if (servicesError) throw servicesError;
+      const plans = Array.isArray(vars.accepted_insurances) ? (vars.accepted_insurances as string[]) : [];
+      const serviceLines = (services || []).map((service) => {
+        const payment = service.payment_options === "particular" ? "Particular" : service.payment_options === "convenio" ? "Convênio" : "Particular e convênio";
+        const duration = service.duration_minutes ? " · " + service.duration_minutes + " min" : "";
+        return "• " + service.name + duration + " — " + payment;
+      });
+      content = [
+        "Mais informações sobre os atendimentos",
+        serviceLines.length ? "Tipos de atendimento disponíveis:\\n" + serviceLines.join("\\n") : "O profissional ainda não cadastrou tipos de atendimento.",
+        "Modalidades: presencial e online.",
+        plans.length ? "Convênios aceitos: " + plans.join(", ") + "." : "Convênios: não há convênios cadastrados; consulte o profissional sobre atendimento particular.",
+      ].join("\\n\\n");
+    }
     await db.from("chatbot_conversations").update({
       current_node_id: node.id,
       variables: vars,
@@ -195,9 +235,20 @@ Deno.serve(async (request) => {
       const start = nodes.find((node) => node.type === "start");
       if (!start) return json({ error: "O fluxo publicado não possui bloco de início." }, 422);
 
-      const { data: profile } = await db.from("professional_profiles").select("full_name,avatar_url").eq("id", bot.professional_id).maybeSingle();
+      const { data: profile } = await db.from("professional_profiles")
+        .select("full_name,avatar_url,professional_type,specialty,public_bio,city,address,phone,accepted_insurances")
+        .eq("id", bot.professional_id).maybeSingle();
       const professionalName = profile?.full_name || "nossa equipe";
       const professionalAvatarUrl = profile?.avatar_url || null;
+      const profileVariables = {
+        professional_type: profile?.professional_type || "",
+        specialty: profile?.specialty || "",
+        public_bio: profile?.public_bio || "",
+        city: profile?.city || "",
+        address: profile?.address || "",
+        professional_phone: profile?.phone || "",
+        accepted_insurances: profile?.accepted_insurances || [],
+      };
       const token = newToken();
       const tokenHash = await sha256(token);
       const { data: conversation, error: conversationError } = await db.from("chatbot_conversations").insert({
@@ -214,7 +265,7 @@ Deno.serve(async (request) => {
       }).select("id,professional_id,chatbot_id,flow_id,flow_version,current_node_id,variables,status,patient_name").single();
       if (conversationError || !conversation) throw conversationError || new Error("Não foi possível iniciar a conversa.");
 
-      const result = await advance(conversation as Session, definition, start, professionalName, {});
+      const result = await advance(conversation as Session, definition, start, professionalName, profileVariables);
       return json({ conversation_id: conversation.id, session_token: token, flow_version: flow.version, professional_name: professionalName, professional_avatar_url: professionalAvatarUrl, ...result });
     }
 

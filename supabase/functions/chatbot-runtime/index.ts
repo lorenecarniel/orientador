@@ -195,8 +195,9 @@ Deno.serve(async (request) => {
       const start = nodes.find((node) => node.type === "start");
       if (!start) return json({ error: "O fluxo publicado não possui bloco de início." }, 422);
 
-      const { data: profile } = await db.from("professional_profiles").select("full_name").eq("id", bot.professional_id).maybeSingle();
+      const { data: profile } = await db.from("professional_profiles").select("full_name,avatar_url").eq("id", bot.professional_id).maybeSingle();
       const professionalName = profile?.full_name || "nossa equipe";
+      const professionalAvatarUrl = profile?.avatar_url || null;
       const token = newToken();
       const tokenHash = await sha256(token);
       const { data: conversation, error: conversationError } = await db.from("chatbot_conversations").insert({
@@ -214,7 +215,7 @@ Deno.serve(async (request) => {
       if (conversationError || !conversation) throw conversationError || new Error("Não foi possível iniciar a conversa.");
 
       const result = await advance(conversation as Session, definition, start, professionalName, {});
-      return json({ conversation_id: conversation.id, session_token: token, flow_version: flow.version, ...result });
+      return json({ conversation_id: conversation.id, session_token: token, flow_version: flow.version, professional_name: professionalName, professional_avatar_url: professionalAvatarUrl, ...result });
     }
 
     if (body.action === "sync" || body.action === "patient_message") {

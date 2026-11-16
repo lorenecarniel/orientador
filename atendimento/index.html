@@ -55,7 +55,7 @@
  <button data-page="overview" class="active"><span class="ico">▦</span>Visão geral</button>
  <button data-page="conversations"><span class="ico">▤</span>Conversas</button>
  <button data-page="agenda"><span class="ico">▦</span>Agenda</button>
- <button data-page="templates"><span class="ico">▧</span>Templates</button>
+ 
  <button data-page="builder"><span class="ico">⌘</span>Construtor de fluxos</button>
  <button data-page="channels"><span class="ico">◉</span>Canais</button>
  <button data-page="profile"><span class="ico">♙</span>Meu perfil</button>
@@ -75,33 +75,48 @@ const odSupabase = (window.supabase && window.OD_SUPABASE_CONFIG) ? window.supab
 window.odSupabase = odSupabase;
 const initialNodes=[
 {id:"start",type:"start",title:"Início da conversa",text:"Paciente inicia o atendimento pelo site ou WhatsApp."},
-{id:"welcome",type:"message",title:"Boas-vindas",text:"Olá! Seja bem-vindo(a)! Sou a assistente virtual de {{nome_profissional}}. Como posso chamar você?"},
-{id:"name",type:"question",title:"Identificação do paciente",text:"Perguntar o nome e salvar em {{nome_paciente}}."},
-{id:"menu",type:"options",title:"Menu principal",text:"Agendar consulta · Conhecer profissional · Localização · Valores · Falar com atendente"},
-{id:"route",type:"condition",title:"Direcionar atendimento",text:"Direciona para o fluxo conforme a opção selecionada."},
-{id:"appointment",type:"action",title:"Agendamento",text:"Consultar disponibilidade e registrar solicitação na agenda."},
-{id:"human",type:"handoff",title:"Atendimento humano",text:"Encaminhar conversa para a equipe responsável."},
-{id:"end",type:"end",title:"Finalização",text:"Concluir atendimento e registrar o resultado."}
+{id:"welcome",type:"message",title:"Dar boas-vindas",text:"Olá! Seja bem-vindo(a) ao atendimento de {{nome_profissional}}. 😊"},
+{id:"name",type:"question",title:"Coletar nome",text:"Para começar, como você gostaria de ser chamado(a)? Salvar a resposta em {{nome_paciente}}."},
+{id:"main_menu",type:"options",title:"Menu principal",text:"Escolha uma opção: Agendar consulta · Saiba mais sobre o profissional · Localização · Informações da consulta · Falar com atendente · Sair."},
+{id:"appointment",type:"appointment",title:"Agendar consulta",text:"Apresentar tipos de consulta, consultar horários disponíveis e conduzir o paciente até a confirmação do agendamento."},
+{id:"about",type:"message",title:"Sobre o profissional",text:"Apresentar uma breve apresentação, especialidades, formação e experiência. Personalize com as informações do seu perfil."},
+{id:"location",type:"message",title:"Localização",text:"Informar endereço, ponto de referência e orientações para chegar ao consultório."},
+{id:"consult_info",type:"message",title:"Informações da consulta",text:"Explicar atendimentos presenciais e online, convênios aceitos, duração, valores e orientações importantes."},
+{id:"handoff",type:"handoff",title:"Falar com atendente",text:"Encaminhar a conversa para atendimento humano e avisar ao paciente que a equipe dará continuidade."},
+{id:"end",type:"end",title:"Finalização",text:"Agradecer o contato, confirmar que o atendimento foi concluído e deixar o canal aberto para uma nova conversa."}
+];
+const initialEdges=[
+{source:"main_menu",target:"appointment",label:"Agendar consulta"},
+{source:"main_menu",target:"about",label:"Saiba mais sobre o profissional"},
+{source:"main_menu",target:"location",label:"Localização"},
+{source:"main_menu",target:"consult_info",label:"Informações da consulta"},
+{source:"main_menu",target:"handoff",label:"Falar com atendente"},
+{source:"main_menu",target:"end",label:"Sair"},
+{source:"appointment",target:"end",label:"Após o agendamento"},
+{source:"about",target:"end",label:"Voltar ao menu / finalizar"},
+{source:"location",target:"end",label:"Voltar ao menu / finalizar"},
+{source:"consult_info",target:"end",label:"Voltar ao menu / finalizar"},
+{source:"handoff",target:"end",label:"Atendimento concluído"}
 ];
 const templates=[
 {id:"health",icon:"✚",name:"Atendimento inicial — Saúde",desc:"Boas-vindas, identificação, menu principal e direcionamento para os principais serviços.",nodes:initialNodes},
 {id:"schedule",icon:"▦",name:"Agendamento de consultas",desc:"Coleta de preferência, consulta de horários, dados cadastrais e confirmação.",nodes:[initialNodes[0],{id:"welcome",type:"message",title:"Boas-vindas",text:"Vamos encontrar um horário para você."},{id:"kind",type:"options",title:"Tipo de atendimento",text:"Primeira consulta · Retorno · Acompanhamento"},{id:"period",type:"options",title:"Preferência de horário",text:"Manhã · Tarde · Noite · Flexível"},{id:"calendar",type:"action",title:"Consultar agenda",text:"Consultar disponibilidade real do profissional."},{id:"confirm",type:"question",title:"Confirmar agendamento",text:"Solicitar confirmação do horário selecionado."},initialNodes[7]]},
 {id:"faq",icon:"☷",name:"Dúvidas frequentes",desc:"Respostas administrativas sobre serviços, preparo, endereço e formas de pagamento.",nodes:[initialNodes[0],{id:"welcome",type:"message",title:"Apresentação",text:"Olá! Posso ajudar com informações sobre o atendimento."},{id:"faqmenu",type:"options",title:"Escolha uma dúvida",text:"Serviços · Endereço · Pagamento · Preparação para consulta"},{id:"answer",type:"message",title:"Resposta cadastrada",text:"Apresentar conteúdo informativo configurado pelo profissional."},initialNodes[7]]}
 ];
-let state={page:"overview",nodes:JSON.parse(localStorage.getItem("od_nodes")||"null")||structuredClone(initialNodes),selected:"welcome",flowName:localStorage.getItem("od_flowName")||"Atendimento inicial — Saúde",flowId:null,chatbotId:null,flowDirty:false,flowLoading:false,edges:[],previewTemplateId:null,conversations:JSON.parse(localStorage.getItem("od_conversations")||"[]"),channel:JSON.parse(localStorage.getItem("od_channel")||"{}")};
-const labels={overview:"Visão geral",conversations:"Conversas",agenda:"Agenda",templates:"Templates",builder:"Construtor de fluxos",channels:"Canais",profile:"Meu perfil",settings:"Configurações"};
+let state={page:"overview",nodes:JSON.parse(localStorage.getItem("od_nodes")||"null")||structuredClone(initialNodes),selected:"welcome",flowName:localStorage.getItem("od_flowName")||"Atendimento inicial — Saúde",flowId:null,chatbotId:null,flowDirty:false,flowLoading:false,edges:structuredClone(initialEdges),previewTemplateId:null,conversations:JSON.parse(localStorage.getItem("od_conversations")||"[]"),channel:JSON.parse(localStorage.getItem("od_channel")||"{}")};
+const labels={overview:"Visão geral",conversations:"Conversas",agenda:"Agenda",builder:"Construtor de fluxos",channels:"Canais",profile:"Meu perfil",settings:"Configurações"};
 const types={start:["▶","Início"],message:["▤","Mensagem"],question:["?","Pergunta"],options:["☷","Opções"],condition:["◇","Condição"],action:["⚡","Ação / integração"],appointment:["▦","Agendar consulta"],handoff:["♧","Atendimento humano"],end:["✓","Finalização"]};
 function save(){localStorage.setItem("od_nodes",JSON.stringify(state.nodes));localStorage.setItem("od_flowName",state.flowName);localStorage.setItem("od_conversations",JSON.stringify(state.conversations));localStorage.setItem("od_channel",JSON.stringify(state.channel))}
 function toast(t){let el=$("#toast");el.textContent=t;el.classList.remove("hidden");setTimeout(()=>el.classList.add("hidden"),2600)}
 function go(p){state.page=p;document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===p));$("#crumb").textContent=labels[p];render();if(p==="profile")loadProfessionalProfile();if((p==="builder"||p==="channels")&&!state.flowDirty&&!state.chatbotId)loadBuilderFromSupabase();if(p==="conversations")loadConversations();if(p==="agenda")loadAppointments()}
 document.querySelectorAll("[data-page]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.page)));
 function heading(k,t,d,action=""){return '<div class="heading"><div><div class="eyebrow">'+k+'</div><h1>'+t+'</h1><p>'+d+'</p></div>'+action+'</div>'}
-function render(){let p=$("#page");if(state.page==="overview")p.innerHTML=overview();if(state.page==="templates")p.innerHTML=templatesPage();if(state.page==="builder")p.innerHTML=builderPage();if(state.page==="conversations")p.innerHTML=conversationsPage();if(state.page==="agenda")p.innerHTML=agendaPage();if(state.page==="channels")p.innerHTML=channelsPage();if(state.page==="profile")p.innerHTML=profilePage();if(state.page==="settings")p.innerHTML=settingsPage();bindPage()}
+function render(){let p=$("#page");if(state.page==="overview")p.innerHTML=overview();if(state.page==="builder")p.innerHTML=builderPage();if(state.page==="conversations")p.innerHTML=conversationsPage();if(state.page==="agenda")p.innerHTML=agendaPage();if(state.page==="channels")p.innerHTML=channelsPage();if(state.page==="profile")p.innerHTML=profilePage();if(state.page==="settings")p.innerHTML=settingsPage();bindPage()}
 function overview(){
  const firstName=(currentUser?.user_metadata?.full_name||currentUser?.email||"profissional").split(/[ @]/)[0];
  return '<section class="dash-welcome"><div><span class="dash-kicker">ESPAÇO DO PROFISSIONAL</span><h1>Olá, '+esc(firstName)+'! 👋</h1><p>Seu atendimento, sua agenda e suas automações em um só lugar.</p></div><button class="btn primary" data-go="builder">＋ Criar fluxo</button></section>'+
  '<section class="dash-metrics"><article class="dash-metric"><span class="dash-metric-icon">☷</span><div><small>Conversas carregadas</small><strong>'+state.conversations.length+'</strong><span>Na central de atendimento</span></div></article><article class="dash-metric"><span class="dash-metric-icon">⌘</span><div><small>Blocos no fluxo atual</small><strong>'+state.nodes.length+'</strong><span>'+esc(state.flowName||"Fluxo principal")+'</span></div></article><article class="dash-metric"><span class="dash-metric-icon">▦</span><div><small>Agenda profissional</small><strong>Agenda</strong><span>Consulte e gerencie horários</span></div><button class="dash-link" data-go="agenda">Abrir →</button></article></section>'+
- '<section class="dash-section"><div class="dash-section-head"><div><span class="dash-kicker">ACESSO RÁPIDO</span><h2>O que você deseja fazer?</h2><p>Atalhos para as principais áreas da plataforma.</p></div></div><div class="dash-shortcuts"><button class="dash-shortcut" data-go="conversations"><span class="dash-shortcut-icon">☷</span><b>Conversas</b><small>Acompanhe mensagens e atendimentos</small><span class="dash-arrow">Abrir conversas →</span></button><button class="dash-shortcut" data-go="agenda"><span class="dash-shortcut-icon">▦</span><b>Agenda</b><small>Gerencie consultas e disponibilidade</small><span class="dash-arrow">Abrir agenda →</span></button><button class="dash-shortcut" data-go="builder"><span class="dash-shortcut-icon">⌘</span><b>Construtor de fluxos</b><small>Configure a jornada automatizada</small><span class="dash-arrow">Editar fluxo →</span></button><button class="dash-shortcut" data-go="templates"><span class="dash-shortcut-icon">▧</span><b>Templates</b><small>Comece com modelos prontos</small><span class="dash-arrow">Ver modelos →</span></button></div></section>'+
+ '<section class="dash-section"><div class="dash-section-head"><div><span class="dash-kicker">ACESSO RÁPIDO</span><h2>O que você deseja fazer?</h2><p>Atalhos para as principais áreas da plataforma.</p></div></div><div class="dash-shortcuts"><button class="dash-shortcut" data-go="conversations"><span class="dash-shortcut-icon">☷</span><b>Conversas</b><small>Acompanhe mensagens e atendimentos</small><span class="dash-arrow">Abrir conversas →</span></button><button class="dash-shortcut" data-go="agenda"><span class="dash-shortcut-icon">▦</span><b>Agenda</b><small>Gerencie consultas e disponibilidade</small><span class="dash-arrow">Abrir agenda →</span></button><button class="dash-shortcut" data-go="builder"><span class="dash-shortcut-icon">⌘</span><b>Construtor de fluxos</b><small>Configure a jornada automatizada</small><span class="dash-arrow">Editar fluxo →</span></button></div></section>'+
  '<section class="dash-bottom"><article class="panel dash-flow-panel"><div class="dash-panel-head"><div><span class="dash-kicker">AUTOMAÇÃO</span><h2>Seu fluxo atual</h2></div><span class="pill">Em edição</span></div><h3>'+esc(state.flowName||"Fluxo principal")+'</h3><p class="sub">'+state.nodes.length+' blocos configurados no construtor.</p><button class="btn primary" data-go="builder">Continuar editando</button></article><article class="dash-panel-note"><span class="dash-note-icon">✦</span><div><h3>Uma experiência de cuidado mais simples</h3><p>Organize seus atendimentos, facilite o agendamento e acompanhe as conversas com seus pacientes.</p><button class="dash-link" data-go="profile">Completar meu perfil →</button></div></article></section>';
 }
 function templatesPage(){
@@ -360,9 +375,9 @@ async function loadBuilderFromSupabase(){
    state.flowId=flow.id;state.flowName=flow.name||"Atendimento principal";
    const def=flow.definition||{};
    if(Array.isArray(def.nodes)&&def.nodes.length){state.nodes=def.nodes;state.edges=Array.isArray(def.edges)?def.edges:[];state.selected=state.nodes.some(x=>x.id===state.selected)?state.selected:(state.nodes[1]?.id||state.nodes[0]?.id)}
-   else{state.nodes=structuredClone(initialNodes);state.edges=[];state.selected="welcome"}
+   else{state.nodes=structuredClone(initialNodes);state.edges=structuredClone(initialEdges);state.selected="welcome"}
   }else{
-   state.flowId=null;state.flowName="Atendimento inicial — Saúde";state.nodes=structuredClone(initialNodes);state.edges=[];state.selected="welcome";
+   state.flowId=null;state.flowName="Atendimento inicial — Saúde";state.nodes=structuredClone(initialNodes);state.edges=structuredClone(initialEdges);state.selected="welcome";
   }
   save();
  }catch(err){toast("Não foi possível carregar o fluxo: "+(err.message||"verifique as tabelas e políticas da migration 001."))}

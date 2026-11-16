@@ -28,7 +28,7 @@
     .od-bubble{max-width:88%;padding:12px 14px;border-radius:16px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;box-shadow:0 2px 8px #18334208}
     .od-bot{align-self:flex-start;background:#fff;border:1px solid #e4ebf1;border-bottom-left-radius:5px;color:#263f50}
     .od-user{align-self:flex-end;background:#e4effa;border:1px solid #d5e5f5;border-bottom-right-radius:5px;color:#123c60}
-    #od-chat-status{display:flex;align-items:center;gap:7px;font-size:11px;color:#6c7f8e;padding:9px 16px 10px;background:#fff;border-top:1px solid #edf1f5}
+    #od-chat-status{display:none!important}
     #od-chat-status:before{content:"";width:7px;height:7px;border-radius:50%;background:#23a477;display:inline-block;flex:0 0 7px}
     #od-chat-choices{display:flex;flex-wrap:wrap;gap:8px;padding:4px 14px 14px;background:#fff}
     .od-choice{border:1px solid #cbdceb;border-radius:12px;padding:10px 13px;background:#fff;color:#01355E;cursor:pointer;text-align:left;font:600 12px Inter,Arial,sans-serif;transition:background .15s,border-color .15s,transform .15s}
@@ -112,7 +112,7 @@
         button.type = "button";
         button.className = "od-choice";
         button.textContent = choice.label;
-        button.addEventListener("click", () => sendAnswer(choice.value || choice.label));
+        button.addEventListener("click", () => sendAnswer(choice.value || choice.label, choice.label));
         choices.appendChild(button);
       });
     }
@@ -139,11 +139,11 @@
       status.textContent = "Não foi possível iniciar. Tente novamente mais tarde.";
     } finally { setBusy(false); }
   }
-  async function sendAnswer(answer) {
+  async function sendAnswer(answer, displayText) {
     if (!conversationId || !sessionToken || busy) return;
     const value = String(answer || "").trim();
     if (!value) return;
-    bubble(value, "user");
+    bubble(displayText || value, "user");
     choices.replaceChildren();
     setBusy(true);
     try {

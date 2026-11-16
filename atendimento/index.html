@@ -468,7 +468,9 @@ async function loadAppointments(){
 
  const {data:availability,error:avError}=await odSupabase.from("professional_availability").select("id,weekday,start_time,end_time,slot_interval_minutes").eq("professional_id",currentUser.id).eq("is_active",true).order("weekday").order("start_time");
  if(!avError){$("#availabilityCount").textContent=availability.length;$("#availabilityList").innerHTML=availability.length?'<div class="availability-week-grid">'+["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map((day,i)=>{const entries=availability.filter(a=>Number(a.weekday)===i);return '<div class="availability-day"><b>'+day+'</b>'+(entries.length?entries.map(a=>'<div class="availability-time"><span>'+a.start_time.slice(0,5)+'–'+a.end_time.slice(0,5)+'</span><button class="icon-action delete-action" title="Remover" aria-label="Remover" data-delete-availability="'+a.id+'">×</button></div>').join(""):'<small>—</small>')+'</div>'}).join("")+'</div>':'<div class="empty">Nenhum horário configurado.</div>'}
- renderAgendaConfigWeek(avError?[]:availability,blockError?[]:blocks);
+ const configStart=startOfWeek(selected);const configEnd=new Date(configStart);configEnd.setDate(configEnd.getDate()+7);
+ const {data:weeklyBlocks}=await odSupabase.from("professional_calendar_blocks").select("id,starts_at,ends_at,reason").eq("professional_id",currentUser.id).gte("starts_at",configStart.toISOString()).lt("starts_at",configEnd.toISOString()).order("starts_at");
+ renderAgendaConfigWeek(avError?[]:availability,weeklyBlocks||[]);
  bindAgendaActions();
 }
 function bindAgendaActions(){

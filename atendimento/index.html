@@ -392,7 +392,7 @@ async function loadAppointments(){
  if(agendaView==="week"){start=startOfWeek(selected);end=new Date(start);end.setDate(end.getDate()+7)}
  else if(agendaView==="month"){start=new Date(selected.getFullYear(),selected.getMonth(),1);end=new Date(selected.getFullYear(),selected.getMonth()+1,1)}
  else{start=new Date(date+"T00:00:00");end=new Date(start);end.setDate(end.getDate()+1)}
- $("#agendaDayLabel").textContent=agendaView==="day"?selected.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"):agendaView==="week"?"Semana de "+start.toLocaleDateString("pt-BR",{day:"2-digit",month:"short"})+" a "+new Date(end.getTime()-86400000).toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"}):selected.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
+ $("#agendaDayLabel").textContent=agendaView==="day"?selected.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}):agendaView==="week"?"Semana de "+start.toLocaleDateString("pt-BR",{day:"2-digit",month:"short"})+" a "+new Date(end.getTime()-86400000).toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"}):selected.toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
  const {data:items,error}=await odSupabase.from("appointments").select("id,patient_name,patient_phone,starts_at,ends_at,status,source,notes").eq("professional_id",currentUser.id).gte("starts_at",start.toISOString()).lt("starts_at",end.toISOString()).neq("status","cancelled").order("starts_at");
  if(error){$("#agendaAppointments").innerHTML='<div class="empty">Não foi possível carregar. Execute a migration 006 no Supabase.</div>';toast("Erro ao carregar agenda: "+error.message);return}
  $("#appointmentCount").textContent=items.length;

@@ -575,7 +575,7 @@ async function loadAppointments(){
  bindAgendaActions();
 }
 async function openConsultationWorkspace(appointment){
- go("consultation");const modal=$("#consultationWorkspace");$("#startConsultationAppointmentId").value=appointment.id;
+ go("consultation");bindAgendaActions();const modal=$("#consultationWorkspace");$("#startConsultationAppointmentId").value=appointment.id;
  $("#startConsultationPatient").textContent=appointment.patient_name+" · "+new Date(appointment.starts_at).toLocaleString("pt-BR");
  modal.dataset.patientId="";$("#consultSaveStatus").textContent="Carregando prontuário...";
  let patientId=appointment.patient_id||null;
@@ -584,7 +584,7 @@ async function openConsultationWorkspace(appointment){
   if(appointment.patient_phone){const {data}=await odSupabase.from("patients").select("id").eq("professional_id",currentUser.id).eq("phone",appointment.patient_phone).limit(2);matches=data||[]}
   if(matches.length>1){toast("Há mais de um paciente com este telefone. Vincule o paciente correto pela lista antes de iniciar.");go("agenda");return}
   if(matches.length===1)patientId=matches[0].id;
-  if(!patientId&&appointment.patient_email){const {data}=await odSupabase.from("patients").select("id").eq("professional_id",currentUser.id).ilike("email",appointment.patient_email).limit(2);matches=data||[];if(matches.length>1){toast("Há mais de um paciente com este e-mail. Vincule o correto antes de iniciar.");modal.classList.add("hidden");return}if(matches.length===1)patientId=matches[0].id}
+  if(!patientId&&appointment.patient_email){const {data}=await odSupabase.from("patients").select("id").eq("professional_id",currentUser.id).ilike("email",appointment.patient_email).limit(2);matches=data||[];if(matches.length>1){toast("Há mais de um paciente com este e-mail. Vincule o correto antes de iniciar.");go("agenda");return}if(matches.length===1)patientId=matches[0].id}
   if(!patientId){const {data,error}=await odSupabase.from("patients").insert({professional_id:currentUser.id,full_name:appointment.patient_name,phone:appointment.patient_phone||null,email:appointment.patient_email||null}).select("id").single();if(error){toast("Erro ao criar prontuário: "+error.message);modal.classList.add("hidden");return}patientId=data.id}
   const {error}=await odSupabase.from("appointments").update({patient_id:patientId}).eq("id",appointment.id).eq("professional_id",currentUser.id);if(error){toast("Não foi possível vincular o paciente ao agendamento: "+error.message);modal.classList.add("hidden");return}
  }
@@ -621,6 +621,7 @@ function bindAgendaActions(){
   if(updateError){toast("Consulta salva, mas não foi possível finalizar o agendamento: "+updateError.message);return}
   selectedAgendaAppointment=null;toast("Consulta finalizada e adicionada ao histórico.");go("agenda");loadAppointments();
  });
+ if(state.page==="consultation")return;
  const agendaModalMap={type:"#appointmentTypeModal",block:"#calendarBlockModal",availability:"#availabilityModal"};
  document.querySelectorAll("[data-open-agenda-modal]").forEach(btn=>btn.onclick=()=>{const modal=$(agendaModalMap[btn.dataset.openAgendaModal]);modal?.classList.remove("hidden");if(btn.dataset.openAgendaModal==="type")resetAppointmentTypeForm()});
  document.querySelectorAll("[data-close-agenda-modal]").forEach(btn=>btn.onclick=()=>$(agendaModalMap[btn.dataset.closeAgendaModal])?.classList.add("hidden"));

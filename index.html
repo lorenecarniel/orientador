@@ -1867,17 +1867,8 @@ class Component extends DCLogic {
     const first = i.plans.slice(0, 2).join(', ') + (n > 2 ? ' +' + (n - 2) : '');
     return (i.particular ? 'Particular e convênios: ' : 'Convênios: ') + first;
   }
-  proSchedule(p) {
-    const n = parseInt(String(p.id).replace(/\D/g, ''), 10) || 1;
-    const early = n % 2 === 0;
-    const d = early ? '8:00 às 16:00' : '9:00 às 17:00';
-    return [
-      ['Segunda-feira', d], ['Terça-feira', d], ['Quarta-feira', n % 3 === 0 ? '13:00 às 19:00' : d],
-      ['Quinta-feira', d], ['Sexta-feira', early ? '8:00 às 12:00' : '9:00 às 15:00'],
-      ['Sábado', n % 2 === 1 ? '9:00 às 12:00' : 'Fechado'], ['Domingo', 'Fechado']
-    ];
-  }
-  ratingNum(v) { const n = parseFloat(String(v == null ? '4.8' : v).replace(',', '.')); return isNaN(n) ? 4.8 : Math.max(0, Math.min(5, n)); }
+  proSchedule(p) { return []; }
+    ratingNum(v) { const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isNaN(n) ? 0 : Math.max(0, Math.min(5, n)); }
   PRO_TAGS = {
     p1: ['Joelho', 'Lesões no esporte', 'Primeira avaliação'],
     p2: ['Trauma e torção', 'Joelho', 'Exames de imagem'],
@@ -2067,7 +2058,7 @@ class Component extends DCLogic {
     this._dm.rec.clear(); this._dm.level = new WeakMap(); this._dm.snap = new WeakMap();
   }
     async loadPublicProfessionals() {
-    const endpoint = 'https://dxejugiflvijsnvlnglh.supabase.co/rest/v1/professional_profiles?select=id,full_name,professional_type,specialty,phone,city,address,location_url,registration_number,public_bio,education,experience,public_email,website_url,instagram_url,linkedin_url,avatar_url,accepted_insurances,is_public&is_public=eq.true&order=full_name.asc';
+    const endpoint = 'https://dxejugiflvijsnvlnglh.supabase.co/rest/v1/professional_public_profiles?select=id,full_name,professional_type,specialty,city,address,location_url,registration_number,public_bio,education,experience,public_email,website_url,instagram_url,linkedin_url,avatar_url,accepted_insurances&order=full_name.asc';
     const publicKey = 'sb_publishable_e31Emr1ieS-8zgEjwyqUyg_f-MMtEFF';
     try {
       const response = await fetch(endpoint, { headers: { apikey: publicKey, Authorization: 'Bearer ' + publicKey } });
@@ -2091,7 +2082,7 @@ class Component extends DCLogic {
           specialty: row.specialty || 'Atuação profissional', registration: row.registration_number || 'Registro não informado',
           city: cityParts[0] || row.city || 'Localização não informada', state: cityParts[1] || '',
           modality: 'Consulte as modalidades disponíveis', types: [classify(profession + ' ' + (row.specialty || ''))],
-          contact: row.public_email || row.phone || '', availability: 'Consulte os horários disponíveis no calendário',
+          contact: row.public_email || '', availability: 'Consulte os horários disponíveis no calendário',
           care: row.experience || 'Consulte informações com o profissional',
           rating: null, reviews: '', description: row.public_bio || '',
           avatar_url: row.avatar_url || '', location_url: row.location_url || '',
@@ -3207,18 +3198,11 @@ componentDidMount() {
       proHeadline: pro.profession + ' com foco em ' + pro.specialty.charAt(0).toLowerCase() + pro.specialty.slice(1) + '.',
       proTags: (this.PRO_TAGS[pro.id] || []).map(label => ({ label })),
       proPlace: pro.city + ' - ' + pro.state, proModality: pro.modality,
-      proAbout: 'Sou ' + pro.profession.toLowerCase() + ' e atuo com ' + pro.specialty.charAt(0).toLowerCase() + pro.specialty.slice(1) + '. Meu objetivo é ajudar você a entender o que está sentindo, recuperar seus movimentos com segurança e voltar às atividades do dia a dia com mais qualidade de vida. (Texto fictício.)',
+      proAbout: pro.description || 'Este profissional ainda não adicionou uma apresentação pública.',
       proQuote: '“Acredito em um cuidado individualizado, baseado em ciência e no seu objetivo de vida.”',
       proServices: (this.PRO_TAGS[pro.id] || []).concat(pro.care ? [pro.care] : [], ['Avaliação funcional']).slice(0, 6).map((label, k) => ({ label, icon: ['accessibility_new', 'healing', 'fitness_center', 'monitor_heart', 'sports_gymnastics', 'assignment'][k % 6] })),
-      proEducation: [
-        { title: 'Graduação em ' + (pro.profession.indexOf('Médic') === 0 ? 'Medicina' : pro.profession), place: 'Instituição fictícia · 2012' },
-        { title: 'Especialização relacionada à área de atuação', place: 'Instituição fictícia · 2016' },
-        { title: 'Cursos de atualização em dor musculoesquelética', place: 'Instituição fictícia · 2021' }
-      ],
-      proReviewsList: [
-        { who: 'Paciente · há 2 semanas', text: 'Atendimento atencioso, explicou tudo com calma e clareza.' },
-        { who: 'Paciente · há 1 mês', text: 'Me senti ouvido(a) e segui as orientações com segurança.' }
-      ],
+      proEducation: String(pro.education || '').split(/\n|;/).map(x => x.trim()).filter(Boolean).map(title => ({ title, place: '' })),
+      proReviewsList: [],
       proTabs: [['sobre', 'Sobre'], ['formacao', 'Formação'], ['esp', 'Especialidades'], ['local', 'Localização']].map(([id, label]) => {
         const on = (s.proTab || 'sobre') === id;
         return { label, on, select: () => { this.setState({ proTab: id }); const el = document.getElementById('pro-sec-' + id); if (el) window.scrollTo({ top: window.pageYOffset + el.getBoundingClientRect().top - 140, behavior: 'smooth' }); }, border: on ? t['--accent-ink2'] : 'transparent', fg: on ? t['--brand'] : t['--ink2'], weight: on ? 700 : 500 };

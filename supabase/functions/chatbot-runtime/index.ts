@@ -124,7 +124,7 @@ async function advance(session: Session, definition: Definition, firstNode: Node
     }
     if (node.type === "appointment") {
       const { data: services, error: serviceError } = await db.from("appointment_types")
-        .select("id,name,duration_minutes,price").eq("professional_id", session.professional_id).eq("is_active", true).order("name");
+        .select("id,name,duration_minutes,price,payment_options").eq("professional_id", session.professional_id).eq("is_active", true).order("name");
       if (serviceError) throw serviceError;
       if (!services?.length) {
         const notice = "No momento, não há tipos de consulta disponíveis para agendamento. Vou encaminhar sua solicitação à equipe.";
@@ -273,17 +273,76 @@ Deno.serve(async (request) => {
         await addMessage(conversation.id, "inbound", answer, { node_id: node.id, node_type: node.type, appointment_step: step });
         if (step === "service") {
           const serviceId = answer.startsWith("service:") ? answer.slice(8) : "";
-          const { data: service } = await db.from("appointment_types").select("id,name,duration_minutes").eq("id", serviceId).eq("professional_id", conversation.professional_id).eq("is_active", true).maybeSingle();
+          const { data: service } = await db.from("appointment_types").select("id,name,duration_minutes,payment_options").eq("id", serviceId).eq("professional_id", conversation.professional_id).eq("is_active", true).maybeSingle();
           if (!service) return json({ error: "Selecione um tipo de consulta disponível." }, 400);
-          vars.appointment_type_id = service.id; vars.appointment_type_name = service.name; vars.appointment_duration = service.duration_minutes; vars.appointment_step = "date";
-          const dates = Array.from({ length: 14 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() + i + 1); return d.toISOString().slice(0, 10); });
-          const choices = dates.map((date) => ({ label: new Date(date + "T12:00:00").toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "short", day: "2-digit", month: "2-digit" }), value: "date:" + date }));
-          const message = "Qual data é melhor para você?";
-          await addMessage(conversation.id, "outbound", message, { node_id: node.id, node_type: node.type, choices });
-          await db.from("chatbot_conversations").update({ variables: vars, last_message_at: new Date().toISOString() }).eq("id", conversation.id);
-          return json({ status: "waiting_input", node_type: "appointment", appointment_step: "date", message, choices, variables: vars });
+          vars.appointment_type_id = service.id; vars.appointment_type_name = service.name; vars.appointment_duration = service.duration_minutes;
+          const options = service.payment_options || "ambos";
+          if (options === "ambos") {
+            vars.appointment_step = "payment";
+            const choices = [{label:"Particular",value:"payment:particular"},{label:"Convênio",value:"payment:convenio"}];
+            const message = "Como deseja realizar o pagamento?";
+            await addMessage(conversation.id,"outbound",message,{node_id:node.id,node_type:node.type,choices});
+            await db.from("chatbot_conversations").update({variables:vars,last_message_at:new Date().toISOString()}).eq("id",conversation.id);
+            return json({status:"waiting_input",node_type:"appointment",appointment_step:"payment",message,choices,variables:vars});
+          }
+          vars.appointment_payment_type = options;
+          if (options === "convenio") {
+            const {data:profile}=await db.from("professional_profiles").select("accepted_insurances").eq("id",conversation.professional_id).maybeSingle();
+            const plans=(profile?.accepted_insurances||[]) as string[];
+            if(!plans.length)return json({error:"Este profissional ainda não cadastrou os convênios aceitos."},400);
+            vars.appointment_step="insurance";
+            const choices=plans.map((name)=>({label:name,value:"insurance:"+name}));
+            const message="Qual convênio você utiliza?";
+            await addMessage(conversation.id,"outbound",message,{node_id:node.id,node_type:node.type,choices});
+            await db.from("chatbot_conversations").update({variables:vars,last_message_at:new Date().toISOString()}).eq("id",conversation.id);
+            return json({status:"waiting_input",node_type:"appointment",appointment_step:"insurance",message,choices,variables:vars});
+          }
+          vars.appointment_step = "date";
+          const dates = Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()+i+1);return d.toISOString().slice(0,10)});
+          const choices=dates.map(date=>({label:new Date(date+"T12:00:00").toLocaleDateString("pt-BR",{timeZone:"America/Sao_Paulo",weekday:"short",day:"2-digit",month:"2-digit"}),value:"date:"+date}));
+          const message="Qual data é melhor para você?";
+          await addMessage(conversation.id,"outbound",message,{node_id:node.id,node_type:node.type,choices});
+          await db.from("chatbot_conversations").update({variables:vars,last_message_at:new Date().toISOString()}).eq("id",conversation.id);
+          return json({status:"waiting_input",node_type:"appointment",appointment_step:"date",message,choices,variables:vars});
         }
-        if (step === "date") {
+        if (step === "payment") {
+          if(!answer.startsWith("payment:"))return json({error:"Escolha particular ou convênio."},400);
+          const payment=answer.slice(8);if(!["particular","convenio"].includes(payment))return json({error:"Forma de pagamento inválida."},400);
+          vars.appointment_payment_type=payment;
+          if(payment==="convenio"){
+            const {data:profile}=await db.from("professional_profiles").select("accepted_insurances").eq("id",conversation.professional_id).maybeSingle();
+            const plans=(profile?.accepted_insurances||[]) as string[];
+            if(!plans.length)return json({error:"Este profissional ainda não cadastrou os convênios aceitos."},400);
+            vars.appointment_step="insurance";
+            const choices=plans.map(name=>({label:name,value:"insurance:"+name}));
+            const message="Qual convênio você utiliza?";
+            await addMessage(conversation.id,"outbound",message,{node_id:node.id,node_type:node.type,choices});
+            await db.from("chatbot_conversations").update({variables:vars,last_message_at:new Date().toISOString()}).eq("id",conversation.id);
+            return json({status:"waiting_input",node_type:"appointment",appointment_step:"insurance",message,choices,variables:vars});
+          }
+          vars.appointment_step="date";
+          const dates=Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()+i+1);return d.toISOString().slice(0,10)});
+          const choices=dates.map(date=>({label:new Date(date+"T12:00:00").toLocaleDateString("pt-BR",{timeZone:"America/Sao_Paulo",weekday:"short",day:"2-digit",month:"2-digit"}),value:"date:"+date}));
+          const message="Qual data é melhor para você?";
+          await addMessage(conversation.id,"outbound",message,{node_id:node.id,node_type:node.type,choices});
+          await db.from("chatbot_conversations").update({variables:vars,last_message_at:new Date().toISOString()}).eq("id",conversation.id);
+          return json({status:"waiting_input",node_type:"appointment",appointment_step:"date",message,choices,variables:vars});
+        }
+        if (step === "insurance") {
+          if(!answer.startsWith("insurance:"))return json({error:"Selecione um convênio da lista."},400);
+          const insurance=answer.slice(10);
+          const {data:profile}=await db.from("professional_profiles").select("accepted_insurances").eq("id",conversation.professional_id).maybeSingle();
+          const plans=(profile?.accepted_insurances||[]) as string[];
+          if(!plans.includes(insurance))return json({error:"Convênio não disponível para este profissional."},400);
+          vars.appointment_insurance_name=insurance;vars.appointment_step="date";
+          const dates=Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()+i+1);return d.toISOString().slice(0,10)});
+          const choices=dates.map(date=>({label:new Date(date+"T12:00:00").toLocaleDateString("pt-BR",{timeZone:"America/Sao_Paulo",weekday:"short",day:"2-digit",month:"2-digit"}),value:"date:"+date}));
+          const message="Qual data é melhor para você?";
+          await addMessage(conversation.id,"outbound",message,{node_id:node.id,node_type:node.type,choices});
+          await db.from("chatbot_conversations").update({variables:vars,last_message_at:new Date().toISOString()}).eq("id",conversation.id);
+          return json({status:"waiting_input",node_type:"appointment",appointment_step:"date",message,choices,variables:vars});
+        }
+                if (step === "date") {
           const date = answer.startsWith("date:") ? answer.slice(5) : "";
           if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json({ error: "Escolha uma data disponível." }, 400);
           const { data: slots, error: slotError } = await db.rpc("get_available_slots", { p_professional_id: conversation.professional_id, p_date: date, p_duration_minutes: Number(vars.appointment_duration) });
@@ -320,7 +379,7 @@ Deno.serve(async (request) => {
           const phone = answer.replace(/\D/g, "");
           if (phone.length < 10 || phone.length > 13) return json({ error: "Informe um telefone válido com DDD." }, 400);
           vars.appointment_phone = phone; vars.appointment_step = "confirm";
-          const summary = "Confirme seu agendamento:\n" + String(vars.appointment_type_name) + "\n" + new Date(String(vars.appointment_starts_at)).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) + "\nPaciente: " + String(vars.appointment_patient_name);
+          const summary = "Confirme seu agendamento:\n" + String(vars.appointment_type_name) + "\n" + (vars.appointment_payment_type==="convenio"?"Convênio: "+String(vars.appointment_insurance_name):"Pagamento particular") + "\n" + new Date(String(vars.appointment_starts_at)).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) + "\nPaciente: " + String(vars.appointment_patient_name);
           const choices = [{ label: "Confirmar agendamento", value: "confirm:yes" }, { label: "Cancelar", value: "confirm:no" }];
           await addMessage(conversation.id, "outbound", summary, { node_id: node.id, node_type: node.type, choices });
           await db.from("chatbot_conversations").update({ variables: vars, last_message_at: new Date().toISOString() }).eq("id", conversation.id);
@@ -342,6 +401,7 @@ Deno.serve(async (request) => {
             p_patient_phone: String(vars.appointment_phone), p_patient_email: null, p_starts_at: startsAt.toISOString(),
             p_ends_at: endsAt.toISOString(), p_appointment_type_id: String(vars.appointment_type_id),
             p_conversation_id: conversation.id, p_source: "chatbot", p_notes: null,
+            p_payment_type: String(vars.appointment_payment_type || "particular"), p_insurance_name: vars.appointment_insurance_name ? String(vars.appointment_insurance_name) : null,
           });
           if (bookingError) throw bookingError;
           vars.appointment_step = "completed";

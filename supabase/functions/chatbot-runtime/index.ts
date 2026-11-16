@@ -91,6 +91,7 @@ function evaluateCondition(node: Node, variables: Record<string, unknown>): bool
 
 async function advance(session: Session, definition: Definition, firstNode: Node, professionalName: string, vars: Record<string, unknown>) {
   let node: Node | null = firstNode;
+  const precedingMessages: string[] = [];
   let steps = 0;
   while (node && steps++ < 40) {
     const content = interpolate(node.text || node.title || "", vars, professionalName);
@@ -107,6 +108,7 @@ async function advance(session: Session, definition: Definition, firstNode: Node
     }
     if (node.type === "message") {
       await addMessage(session.id, "outbound", content, { node_id: node.id, node_type: node.type });
+      precedingMessages.push(content);
       node = nextNode(definition, node);
       continue;
     }
@@ -126,7 +128,7 @@ async function advance(session: Session, definition: Definition, firstNode: Node
         : [];
       await addMessage(session.id, "outbound", content, { node_id: node.id, node_type: node.type, choices });
       await db.from("chatbot_conversations").update({ current_node_id: node.id, variables: vars, last_message_at: new Date().toISOString() }).eq("id", session.id);
-      return { status: "waiting_input", node_type: node.type, message: content, choices, variables: vars };
+      return { status: "waiting_input", node_type: node.type, message: content, preceding_messages: precedingMessages, choices, variables: vars };
     }
     if (node.type === "handoff") {
       await addMessage(session.id, "outbound", content || "Vou encaminhar você para nossa equipe de atendimento.", { node_id: node.id, node_type: node.type });

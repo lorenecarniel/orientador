@@ -1394,8 +1394,8 @@
 
             <sc-if value="{{ noProfessionals }}" hint-placeholder-val="{{ false }}">
               <div style="border:1px dashed var(--line,#E6E9EC); border-radius:18px; padding:26px; display:flex; flex-direction:column; gap:8px;">
-                <h2 style="margin:0; font-size:1.06em; font-weight:700; color:var(--brand,#01355E);">Nenhum profissional com esses filtros</h2>
-                <p style="margin:0; font-size:0.95em; line-height:1.6; color:var(--ink2,#4A6472);">Tente outra cidade, especialidade ou modalidade.</p>
+                <h2 style="margin:0; font-size:1.06em; font-weight:700; color:var(--brand,#01355E);">{{ directoryMessage }}</h2>
+                <p style="margin:0; font-size:0.95em; line-height:1.6; color:var(--ink2,#4A6472);">Quando um profissional publicar o cadastro, ele aparecerá aqui. Ajuste os filtros ou consulte novamente em instantes.</p>
               </div>
             </sc-if>
 
@@ -1848,7 +1848,7 @@ class Component extends DCLogic {
     p7: 'Av. Norte-Sul, 1200 – Cambuí, Campinas – SP',
     p8: 'Rua da Bahia, 1148 – Lourdes, Belo Horizonte – MG'
   };
-  proAddress(p) { return this.PRO_ADDR[p.id] || (p.city + ' – ' + p.state); }
+  proAddress(p) { return p.address || this.PRO_ADDR[p.id] || [p.city, p.state].filter(Boolean).join(' – ') || 'Localização não informada'; }
   /* DADOS MOCK — convênios fictícios para demonstração */
   PRO_INS = {
     p1: { particular: true, plans: ['Unimed', 'Bradesco Saúde', 'SulAmérica'] },
@@ -1867,17 +1867,8 @@ class Component extends DCLogic {
     const first = i.plans.slice(0, 2).join(', ') + (n > 2 ? ' +' + (n - 2) : '');
     return (i.particular ? 'Particular e convênios: ' : 'Convênios: ') + first;
   }
-  proSchedule(p) {
-    const n = parseInt(String(p.id).replace(/\D/g, ''), 10) || 1;
-    const early = n % 2 === 0;
-    const d = early ? '8:00 às 16:00' : '9:00 às 17:00';
-    return [
-      ['Segunda-feira', d], ['Terça-feira', d], ['Quarta-feira', n % 3 === 0 ? '13:00 às 19:00' : d],
-      ['Quinta-feira', d], ['Sexta-feira', early ? '8:00 às 12:00' : '9:00 às 15:00'],
-      ['Sábado', n % 2 === 1 ? '9:00 às 12:00' : 'Fechado'], ['Domingo', 'Fechado']
-    ];
-  }
-  ratingNum(v) { const n = parseFloat(String(v == null ? '4.8' : v).replace(',', '.')); return isNaN(n) ? 4.8 : Math.max(0, Math.min(5, n)); }
+  proSchedule(p) { return []; }
+    ratingNum(v) { const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isNaN(n) ? 0 : Math.max(0, Math.min(5, n)); }
   PRO_TAGS = {
     p1: ['Joelho', 'Lesões no esporte', 'Primeira avaliação'],
     p2: ['Trauma e torção', 'Joelho', 'Exames de imagem'],
@@ -1888,16 +1879,8 @@ class Component extends DCLogic {
     p7: ['Treinamento funcional', 'Fortalecimento', 'Prevenção de lesões'],
     p8: ['Retorno ao esporte', 'Fortalecimento', 'Exercício orientado']
   };
-  PROS = [
-    { id: 'p1', name: 'Dra. Helena Prado', profession: 'Médica ortopedista', specialty: 'Joelho e lesões relacionadas à prática de esportes', registration: 'CRM fictício 00000-SP', city: 'São Paulo', state: 'SP', modality: 'Presencial e Online', types: ['ortopedia'], contact: 'contato@exemplo-ficticio.br', availability: 'Segunda a quinta, manhã', care: 'Primeira avaliação e retornos', rating: '4,9', reviews: '128 avaliações', description: 'Perfil fictício criado para teste da experiência. Atua em avaliação de queixas relacionadas ao joelho e encaminhamentos.' },
-    { id: 'p2', name: 'Dr. Rafael Beltrão', profession: 'Médico ortopedista', specialty: 'Traumatologia e dor após queda ou torção', registration: 'CRM fictício 00000-RJ', city: 'Rio de Janeiro', state: 'RJ', modality: 'Presencial', types: ['ortopedia'], contact: 'contato@exemplo-ficticio.br', availability: 'Terça e quinta, tarde', care: 'Avaliação de quadros recentes', rating: '4,7', reviews: '86 avaliações', description: 'Perfil fictício criado para teste da experiência.' },
-    { id: 'p3', name: 'Camila Nogueira', profession: 'Fisioterapeuta', specialty: 'Reabilitação de joelho e recuperação funcional', registration: 'CREFITO fictício 000000-F', city: 'São Paulo', state: 'SP', modality: 'Presencial e Online', types: ['fisioterapia'], contact: 'contato@exemplo-ficticio.br', availability: 'Segunda a sexta', care: 'Avaliação funcional e acompanhamento', rating: '4,9', reviews: '128 avaliações', description: 'Perfil fictício criado para teste da experiência.' },
-    { id: 'p4', name: 'Marcos Vinícius Leal', profession: 'Fisioterapeuta', specialty: 'Dor musculoesquelética que persiste há semanas ou meses', registration: 'CREFITO fictício 000000-F', city: 'Rio de Janeiro', state: 'RJ', modality: 'Online', types: ['fisioterapia'], contact: 'contato@exemplo-ficticio.br', availability: 'Horários à noite', care: 'Orientação e acompanhamento remoto', rating: '4,8', reviews: '96 avaliações', description: 'Perfil fictício criado para teste da experiência.' },
-    { id: 'p5', name: 'Dra. Tereza Kimura', profession: 'Médica reumatologista', specialty: 'Dor articular, inchaço e quadros inflamatórios', registration: 'CRM fictício 00000-PR', city: 'Curitiba', state: 'PR', modality: 'Presencial e Online', types: ['reumatologia'], contact: 'contato@exemplo-ficticio.br', availability: 'Quartas e sextas', care: 'Primeira avaliação', rating: '4,8', reviews: '112 avaliações', description: 'Perfil fictício criado para teste da experiência.' },
-    { id: 'p6', name: 'Dr. Sérgio Amado', profession: 'Educador físico\n', specialty: 'Primeira avaliação e orientação sobre próximos passos', registration: 'CRM fictício 00000-MG', city: 'Belo Horizonte', state: 'MG', modality: 'Presencial', types: ['clinica'], contact: 'contato@exemplo-ficticio.br', availability: 'Segunda a sexta, manhã', care: 'Avaliação geral', rating: '4,6', reviews: '64 avaliações', description: 'Perfil fictício criado para teste da experiência.' },
-    { id: 'p7', name: 'Juliana Reis', profession: 'Profissional de educação física', specialty: 'Exercício orientado e fortalecimento, com acompanhamento', registration: 'CREF fictício 000000-G', city: 'Campinas', state: 'SP', modality: 'Presencial', types: ['educacao_fisica'], contact: 'contato@exemplo-ficticio.br', availability: 'Manhãs e fins de tarde', care: 'Acompanhamento de exercício', rating: '4,7', reviews: '58 avaliações', description: 'Perfil fictício criado para teste da experiência.' },
-    { id: 'p8', name: 'André Salgado', profession: 'Fisioterapeuta', specialty: 'Retorno gradual à atividade física', registration: 'CREFITO fictício 000000-F', city: 'Belo Horizonte', state: 'MG', modality: 'Presencial e Online', types: ['fisioterapia', 'educacao_fisica'], contact: 'contato@exemplo-ficticio.br', availability: 'Terças, quintas e sábados', care: 'Avaliação e progressão de exercícios', rating: '4,7', reviews: '74 avaliações', description: 'Perfil fictício criado para teste da experiência.' }
-  ];
+  PROS = [];
+
 
   ROUTES = {
     '#/': 'home', '#/como-funciona': 'home', '#/seguranca': 'home', '#/acessibilidade': 'home',
@@ -1912,7 +1895,7 @@ class Component extends DCLogic {
     region: null, side: null, answers: {}, qIdx: 0, createdAt: null,
     alertLevel: null, outOfScope: null, helpOpen: false,
     speech: 'idle', voice: 'idle', transcript: '', voiceError: '', notesDraft: '',
-    proId: null, modality: 'Todas', toast: '', saved: false, summaryOpen: false, voiceMatch: '', partial: '',
+    proId: null, modality: 'Todas', toast: '', saved: false, summaryOpen: false, voiceMatch: '', partial: '', directoryLoaded: false, directoryError: '',
     city: 'todas', specialty: 'todas', savedPros: [],
     placeMode: 'todas', placeQuery: '', coords: null, geoStatus: 'idle', geoError: '',
     history: [], hint: false
@@ -2074,8 +2057,51 @@ class Component extends DCLogic {
     this._dm.rec.forEach((r, el) => Object.keys(r).filter(k => k[0] !== '@').forEach(p => this.dmRelease(el, p)));
     this._dm.rec.clear(); this._dm.level = new WeakMap(); this._dm.snap = new WeakMap();
   }
-  componentDidMount() {
+    async loadPublicProfessionals() {
+    const endpoint = 'https://dxejugiflvijsnvlnglh.supabase.co/rest/v1/professional_public_profiles?select=id,full_name,professional_type,specialty,city,address,location_url,registration_number,public_bio,education,experience,public_email,website_url,instagram_url,linkedin_url,avatar_url,accepted_insurances&order=full_name.asc';
+    const publicKey = 'sb_publishable_e31Emr1ieS-8zgEjwyqUyg_f-MMtEFF';
+    try {
+      const response = await fetch(endpoint, { headers: { apikey: publicKey, Authorization: 'Bearer ' + publicKey } });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const rows = await response.json();
+      const classify = value => {
+        const v = String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        if (v.includes('fisioter')) return 'fisioterapia';
+        if (v.includes('ortoped')) return 'ortopedia';
+        if (v.includes('reumat')) return 'reumatologia';
+        if (v.includes('educador') || v.includes('educacao fisica') || v.includes('personal')) return 'educacao_fisica';
+        if (v.includes('clinico') || v.includes('medico')) return 'clinica';
+        return 'fisioterapia';
+      };
+      this.PROS = (Array.isArray(rows) ? rows : []).map(row => {
+        const profession = row.professional_type || 'Profissional da saúde';
+        const cityParts = String(row.city || '').split(' - ');
+        const plans = Array.isArray(row.accepted_insurances) ? row.accepted_insurances : [];
+        return {
+          id: row.id, name: row.full_name || 'Profissional', profession,
+          specialty: row.specialty || 'Atuação profissional', registration: row.registration_number || 'Registro não informado',
+          city: cityParts[0] || row.city || 'Localização não informada', state: cityParts[1] || '',
+          modality: 'Consulte as modalidades disponíveis', types: [classify(profession + ' ' + (row.specialty || ''))],
+          contact: row.public_email || '', availability: 'Consulte os horários disponíveis no calendário',
+          care: row.experience || 'Consulte informações com o profissional',
+          rating: null, reviews: '', description: row.public_bio || '',
+          avatar_url: row.avatar_url || '', location_url: row.location_url || '',
+          address: [row.address, row.city].filter(Boolean).join(', '),
+          education: row.education || '', experience: row.experience || '',
+          public_email: row.public_email || '', website_url: row.website_url || '',
+          instagram_url: row.instagram_url || '', linkedin_url: row.linkedin_url || '',
+          accepted_insurances: plans
+        };
+      });
+      this.setState({ directoryLoaded: true, directoryError: '' }, () => this.readHash());
+    } catch (error) {
+      console.error('[OrientaDor] Falha ao carregar profissionais públicos:', error);
+      this.setState({ directoryLoaded: true, directoryError: 'Não foi possível carregar os profissionais agora.' }, () => this.readHash());
+    }
+  }
+componentDidMount() {
     this.syncTheme();
+    this.loadPublicProfessionals();
     this._mq = window.matchMedia('(max-width: 1024px)');
     this._onMq = () => this.setState({ narrow: this._mq.matches });
     this._onMq();
@@ -2839,10 +2865,10 @@ class Component extends DCLogic {
         return { savedPros: list.indexOf(p.id) >= 0 ? list.filter(x => x !== p.id) : list.concat(p.id) };
       }),
       open: () => { this.track('professional_profile_viewed'); this.setState({ proId: p.id, proTab: 'sobre', toast: '' }); this.go('#/profissionais/' + p.id); },
-      contact: () => this.setState({ toast: 'Contato de demonstração: ' + p.contact + ' — perfil fictício, nenhuma mensagem é enviada nesta versão.' })
+      contact: () => { if (p.public_email) window.location.href = 'mailto:' + p.public_email; else this.setState({ toast: 'Este profissional ainda não informou um e-mail público para contato.' }); }
     }));
 
-    const pro = this.PROS.find(p => p.id === s.proId) || this.PROS[0];
+    const pro = this.PROS.find(p => p.id === s.proId) || this.PROS[0] || { id: '', name: 'Carregando profissional', profession: '', specialty: '', registration: '', city: '', state: '', modality: '', types: [], contact: '', availability: '', care: '', rating: null, reviews: '', description: '', accepted_insurances: [], education: '', experience: '', public_email: '', website_url: '', instagram_url: '', linkedin_url: '', address: '', location_url: '' };
 
     const hist = s.history;
     const maxI = Math.max(1, ...hist.map(h => h.intensity || 0));
@@ -3160,7 +3186,7 @@ class Component extends DCLogic {
           check: on ? 'check' : ''
         };
       }),
-      professionals, noProfessionals: professionals.length === 0, toast: s.toast,
+      professionals, noProfessionals: professionals.length === 0, directoryMessage: s.directoryError || (s.directoryLoaded ? 'Nenhum profissional publicou o perfil nesta página.' : 'Carregando profissionais...'), toast: s.toast,
 
       proName: pro.name, proProfession: pro.profession, proRegistration: pro.registration,
       proInitials: this.initials(pro.name), proDescription: pro.description,
@@ -3172,24 +3198,17 @@ class Component extends DCLogic {
       proHeadline: pro.profession + ' com foco em ' + pro.specialty.charAt(0).toLowerCase() + pro.specialty.slice(1) + '.',
       proTags: (this.PRO_TAGS[pro.id] || []).map(label => ({ label })),
       proPlace: pro.city + ' - ' + pro.state, proModality: pro.modality,
-      proAbout: 'Sou ' + pro.profession.toLowerCase() + ' e atuo com ' + pro.specialty.charAt(0).toLowerCase() + pro.specialty.slice(1) + '. Meu objetivo é ajudar você a entender o que está sentindo, recuperar seus movimentos com segurança e voltar às atividades do dia a dia com mais qualidade de vida. (Texto fictício.)',
+      proAbout: pro.description || 'Este profissional ainda não adicionou uma apresentação pública.',
       proQuote: '“Acredito em um cuidado individualizado, baseado em ciência e no seu objetivo de vida.”',
       proServices: (this.PRO_TAGS[pro.id] || []).concat(pro.care ? [pro.care] : [], ['Avaliação funcional']).slice(0, 6).map((label, k) => ({ label, icon: ['accessibility_new', 'healing', 'fitness_center', 'monitor_heart', 'sports_gymnastics', 'assignment'][k % 6] })),
-      proEducation: [
-        { title: 'Graduação em ' + (pro.profession.indexOf('Médic') === 0 ? 'Medicina' : pro.profession), place: 'Instituição fictícia · 2012' },
-        { title: 'Especialização relacionada à área de atuação', place: 'Instituição fictícia · 2016' },
-        { title: 'Cursos de atualização em dor musculoesquelética', place: 'Instituição fictícia · 2021' }
-      ],
-      proReviewsList: [
-        { who: 'Paciente · há 2 semanas', text: 'Atendimento atencioso, explicou tudo com calma e clareza.' },
-        { who: 'Paciente · há 1 mês', text: 'Me senti ouvido(a) e segui as orientações com segurança.' }
-      ],
+      proEducation: String(pro.education || '').split(/\n|;/).map(x => x.trim()).filter(Boolean).map(title => ({ title, place: '' })),
+      proReviewsList: [],
       proTabs: [['sobre', 'Sobre'], ['formacao', 'Formação'], ['esp', 'Especialidades'], ['local', 'Localização']].map(([id, label]) => {
         const on = (s.proTab || 'sobre') === id;
         return { label, on, select: () => { this.setState({ proTab: id }); const el = document.getElementById('pro-sec-' + id); if (el) window.scrollTo({ top: window.pageYOffset + el.getBoundingClientRect().top - 140, behavior: 'smooth' }); }, border: on ? t['--accent-ink2'] : 'transparent', fg: on ? t['--brand'] : t['--ink2'], weight: on ? 700 : 500 };
       }),
       proAddress: this.proAddress(pro),
-      proMapLink: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(this.proAddress(pro)),
+      proMapLink: pro.location_url || ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(this.proAddress(pro))),
       proMapEmbed: 'https://www.google.com/maps?q=' + encodeURIComponent(this.proAddress(pro)) + '&output=embed',
       proInsSummary: this.proInsSummary(pro),
       proInsParticular: this.proIns(pro).particular,
@@ -3214,7 +3233,7 @@ class Component extends DCLogic {
         { label: 'Disponibilidade', value: pro.availability },
         { label: 'Contato', value: pro.contact }
       ],
-      contactPro: () => this.setState({ toast: 'Contato de demonstração: ' + pro.contact + ' — perfil fictício, nenhuma mensagem é enviada nesta versão.' }),
+      contactPro: () => { if (pro.public_email) window.location.href = 'mailto:' + pro.public_email; else this.setState({ toast: 'Este profissional ainda não informou um e-mail público para contato.' }); },
       routePro: () => this.setState({ toast: 'Endereço de demonstração. Em uma versão real, aqui abriria a rota até o consultório.' }),
 
       hasHistory: hist.length > 0, emptyHistory: hist.length === 0, historyBars, historyItems,

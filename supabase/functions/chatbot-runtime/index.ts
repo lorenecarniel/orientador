@@ -276,7 +276,20 @@ Deno.serve(async (request) => {
           const { data: service } = await db.from("appointment_types").select("id,name,duration_minutes,payment_options").eq("id", serviceId).eq("professional_id", conversation.professional_id).eq("is_active", true).maybeSingle();
           if (!service) return json({ error: "Selecione um tipo de consulta disponível." }, 400);
           vars.appointment_type_id = service.id; vars.appointment_type_name = service.name; vars.appointment_duration = service.duration_minutes;
-          const options = service.payment_options || "ambos";
+          vars.appointment_step = "modality";
+          const modalityChoices = [{label:"Presencial",value:"modality:presencial"},{label:"Online",value:"modality:online"}];
+          const modalityMessage = "Como prefere realizar sua consulta?";
+          await addMessage(conversation.id,"outbound",modalityMessage,{node_id:node.id,node_type:node.type,choices:modalityChoices});
+          await db.from("chatbot_conversations").update({variables:vars,last_message_at:new Date().toISOString()}).eq("id",conversation.id);
+          return json({status:"waiting_input",node_type:"appointment",appointment_step:"modality",message:modalityMessage,choices:modalityChoices,variables:vars});
+        }
+        if (step === "modality") {
+          if (!answer.startsWith("modality:")) return json({error:"Escolha presencial ou online."},400);
+          const modality = answer.slice(9);
+          if (!["presencial","online"].includes(modality)) return json({error:"Modalidade inválida."},400);
+          vars.appointment_modality = modality;
+          const {data:service}=await db.from("appointment_types").select("payment_options").eq("id",vars.appointment_type_id).eq("professional_id",conversation.professional_id).maybeSingle();
+          const options = service?.payment_options || "ambos";
           if (options === "ambos") {
             vars.appointment_step = "payment";
             const choices = [{label:"Particular",value:"payment:particular"},{label:"Convênio",value:"payment:convenio"}];
@@ -361,11 +374,39 @@ Deno.serve(async (request) => {
           if (slotError) throw slotError;
           const valid = (slots || []).some((slot: { starts_at: string }) => new Date(slot.starts_at).toISOString() === new Date(startsAt).toISOString());
           if (!valid) return json({ error: "Esse horário não está mais disponível. Escolha outra data." }, 409);
-          vars.appointment_starts_at = startsAt; vars.appointment_step = "name";
+          vars.appointment_starts_at = startsAt;
+          const collectedName = String(vars.nome_paciente || vars.patient_name || conversation.patient_name || "").trim();
+          if (collectedName.length >= 3) {
+            vars.appointment_patient_name = collectedName;
+            vars.appointment_step = "name_confirm";
+            const message = "Podemos confirmar o agendamento em nome de " + collectedName + "?";
+            const choices = [{label:"Sim, confirmar nome",value:"name:yes"},{label:"Quero corrigir",value:"name:no"}];
+            await addMessage(conversation.id,"outbound",message,{node_id:node.id,node_type:node.type,choices});
+            await db.from("chatbot_conversations").update({variables:vars,last_message_at:new Date().toISOString()}).eq("id",conversation.id);
+            return json({status:"waiting_input",node_type:"appointment",appointment_step:"name_confirm",message,choices,variables:vars});
+          }
+          vars.appointment_step = "name";
           const message = "Perfeito! Qual é seu nome completo?";
           await addMessage(conversation.id, "outbound", message, { node_id: node.id, node_type: node.type });
           await db.from("chatbot_conversations").update({ variables: vars, last_message_at: new Date().toISOString() }).eq("id", conversation.id);
           return json({ status: "waiting_input", node_type: "appointment", appointment_step: "name", message, variables: vars });
+        }
+        if (step === "name_confirm") {
+          if (answer === "name:yes") {
+            vars.appointment_step = "phone";
+            const message = "Ótimo! Qual telefone com DDD podemos usar para contato?";
+            await addMessage(conversation.id,"outbound",message,{node_id:node.id,node_type:node.type});
+            await db.from("chatbot_conversations").update({variables:vars,last_message_at:new Date().toISOString()}).eq("id",conversation.id);
+            return json({status:"waiting_input",node_type:"appointment",appointment_step:"phone",message,variables:vars});
+          }
+          if (answer === "name:no") {
+            vars.appointment_step = "name";
+            const message = "Sem problema. Informe seu nome completo, por favor.";
+            await addMessage(conversation.id,"outbound",message,{node_id:node.id,node_type:node.type});
+            await db.from("chatbot_conversations").update({variables:vars,last_message_at:new Date().toISOString()}).eq("id",conversation.id);
+            return json({status:"waiting_input",node_type:"appointment",appointment_step:"name",message,variables:vars});
+          }
+          return json({error:"Confirme o nome ou escolha corrigir."},400);
         }
         if (step === "name") {
           if (answer.length < 3) return json({ error: "Informe seu nome completo." }, 400);
@@ -379,7 +420,7 @@ Deno.serve(async (request) => {
           const phone = answer.replace(/\D/g, "");
           if (phone.length < 10 || phone.length > 13) return json({ error: "Informe um telefone válido com DDD." }, 400);
           vars.appointment_phone = phone; vars.appointment_step = "confirm";
-          const summary = "Confirme seu agendamento:\n" + String(vars.appointment_type_name) + "\n" + (vars.appointment_payment_type==="convenio"?"Convênio: "+String(vars.appointment_insurance_name):"Pagamento particular") + "\n" + new Date(String(vars.appointment_starts_at)).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) + "\nPaciente: " + String(vars.appointment_patient_name);
+          const summary = "Confirme seu agendamento:\n" + String(vars.appointment_type_name) + "\nModalidade: " + (vars.appointment_modality==="online"?"Online":"Presencial") + "\n" + (vars.appointment_payment_type==="convenio"?"Convênio: "+String(vars.appointment_insurance_name):"Pagamento particular") + "\n" + new Date(String(vars.appointment_starts_at)).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) + "\nPaciente: " + String(vars.appointment_patient_name);
           const choices = [{ label: "Confirmar agendamento", value: "confirm:yes" }, { label: "Cancelar", value: "confirm:no" }];
           await addMessage(conversation.id, "outbound", summary, { node_id: node.id, node_type: node.type, choices });
           await db.from("chatbot_conversations").update({ variables: vars, last_message_at: new Date().toISOString() }).eq("id", conversation.id);
@@ -402,6 +443,7 @@ Deno.serve(async (request) => {
             p_ends_at: endsAt.toISOString(), p_appointment_type_id: String(vars.appointment_type_id),
             p_conversation_id: conversation.id, p_source: "chatbot", p_notes: null,
             p_payment_type: String(vars.appointment_payment_type || "particular"), p_insurance_name: vars.appointment_insurance_name ? String(vars.appointment_insurance_name) : null,
+            p_modality: String(vars.appointment_modality || "presencial"),
           });
           if (bookingError) throw bookingError;
           vars.appointment_step = "completed";

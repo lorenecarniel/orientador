@@ -418,14 +418,14 @@ async function loadAppointmentTypes(){
  document.querySelectorAll("[data-delete-appointment-type]").forEach(b=>b.onclick=async()=>{if(!confirm("Excluir este tipo de consulta? Agendamentos antigos manterão seu histórico."))return;const {error}=await odSupabase.from("appointment_types").update({is_active:false}).eq("id",b.dataset.deleteAppointmentType).eq("professional_id",currentUser.id);if(error){toast("Erro ao excluir tipo: "+error.message);return}toast("Tipo de consulta excluído.");loadAppointmentTypes()});
 }
 function resetAppointmentTypeForm(){if(!$("#appointmentTypeForm"))return;$("#appointmentTypeForm").reset();$("#appointmentTypeId").value="";$("#appointmentTypeDuration").value="60";$("#appointmentTypeModality").value="presencial";$("#appointmentTypePayment").value="ambos";$("#saveAppointmentType").textContent="Salvar tipo de consulta";$("#cancelEditAppointmentType").classList.add("hidden")}
-async async function loadAcceptedInsuranceOptions(){
+async function loadAcceptedInsuranceOptions(){
  const select=$("#appointmentInsurance");if(!select)return;
  const {data,error}=await odSupabase.from("professional_profiles").select("accepted_insurances").eq("id",currentUser.id).maybeSingle();
  const plans=error?[]:(data?.accepted_insurances||[]);
  select.innerHTML='<option value="">Selecione o convênio</option>'+plans.map(x=>'<option value="'+attr(x)+'">'+esc(x)+'</option>').join("");
  if(!plans.length)toast("Cadastre os convênios aceitos em Meu perfil antes de agendar por convênio.");
 }
-function loadAvailableAppointmentSlots(){
+async function loadAvailableAppointmentSlots(){
  const date=$("#appointmentDate")?.value;
  const duration=Number($("#appointmentDuration")?.value||60);
  const hidden=$("#appointmentTime"),grid=$("#appointmentSlotsGrid"),hint=$("#appointmentSlotsHint");
@@ -447,7 +447,7 @@ async function renderAgendaConfigWeek(availability=[],blocks=[]){
  const names=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
  root.innerHTML=names.map((name,day)=>{const av=availability.filter(a=>Number(a.weekday)===day).map(a=>'<div class="agenda-config-slot available">'+a.start_time.slice(0,5)+'–'+a.end_time.slice(0,5)+'<br>Atendimento</div>').join("");const blocked=blocks.filter(b=>new Date(b.starts_at).getDay()===day).map(b=>'<div class="agenda-config-slot blocked">'+new Date(b.starts_at).toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})+' · '+new Date(b.starts_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})+'–'+new Date(b.ends_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})+'<br>'+esc(b.reason||"Bloqueado")+'</div>').join("");return '<div class="agenda-config-day"><b>'+name+'</b>'+(av||"")+(blocked||"")+(!av&&!blocked?'<span class="agenda-config-empty">Sem configuração</span>':"")+'</div>'}).join("");
 }
-function loadAppointments(){
+async function loadAppointments(){
  if(!currentUser||!odSupabase)return;
  const date=$("#agendaDate")?.value||localDateKey(new Date());
  const selected=new Date(date+"T00:00:00");

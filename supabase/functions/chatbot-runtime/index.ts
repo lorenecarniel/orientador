@@ -62,7 +62,7 @@ function buildAboutMessage(vars: Record<string, unknown>, professionalName: stri
     vars.public_bio ? String(vars.public_bio) : "",
     vars.city ? "Cidade: " + vars.city : "",
   ].filter(Boolean);
-  return lines.length > 1 ? lines.join("\\n\\n") : "As informações de apresentação deste profissional ainda não foram cadastradas.";
+  return lines.length > 1 ? lines.join("\n\n") : "As informações de apresentação deste profissional ainda não foram cadastradas.";
 }
 
 function buildLocationMessage(vars: Record<string, unknown>) {
@@ -71,7 +71,7 @@ function buildLocationMessage(vars: Record<string, unknown>) {
   if (!address && !city) return "A localização do consultório ainda não foi cadastrada pelo profissional.";
   const query = [address, city].filter(Boolean).join(", ");
   const mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
-  return "Localização do consultório:\\n" + query + "\\n\\nAbrir no Google Maps:\\n" + mapsUrl;
+  return "Localização do consultório:\n" + query + "\n\nAbrir no Google Maps:\n" + mapsUrl;
 }
 
 async function addMessage(conversationId: string, direction: "inbound" | "outbound", content: string, metadata: Record<string, unknown> = {}) {
@@ -130,10 +130,10 @@ async function advance(session: Session, definition: Definition, firstNode: Node
       });
       content = [
         "Mais informações sobre os atendimentos",
-        serviceLines.length ? "Tipos de atendimento disponíveis:\\n" + serviceLines.join("\\n") : "O profissional ainda não cadastrou tipos de atendimento.",
+        serviceLines.length ? "Tipos de atendimento disponíveis:\n" + serviceLines.join("\n") : "O profissional ainda não cadastrou tipos de atendimento.",
         "Modalidades: presencial e online.",
         plans.length ? "Convênios aceitos: " + plans.join(", ") + "." : "Convênios: não há convênios cadastrados; consulte o profissional sobre atendimento particular.",
-      ].join("\\n\\n");
+      ].join("\n\n");
     }
     await db.from("chatbot_conversations").update({
       current_node_id: node.id,

@@ -579,7 +579,11 @@ async function openConsultationWorkspace(appointment){
  $("#startConsultationPatient").textContent=appointment.patient_name+" · "+new Date(appointment.starts_at).toLocaleString("pt-BR");
  modal.dataset.patientId="";$("#consultSaveStatus").textContent="Carregando prontuário...";
  let patientId=appointment.patient_id||null;
- if(!patientId){
+ let linkedPatient=null;
+ if(patientId){const {data}=await odSupabase.from("patients").select("id,full_name").eq("id",patientId).eq("professional_id",currentUser.id).maybeSingle();linkedPatient=data||null}
+ const expectedName=String(appointment.patient_name||"").trim().toLocaleLowerCase("pt-BR").replace(/\\s+/g," ");
+ const linkedName=String(linkedPatient?.full_name||"").trim().toLocaleLowerCase("pt-BR").replace(/\\s+/g," ");
+ if(!patientId||!linkedPatient||linkedName!==expectedName){
   const resolved=await odSupabase.rpc("find_or_create_patient_by_phone",{p_professional_id:currentUser.id,p_full_name:appointment.patient_name,p_phone:appointment.patient_phone||null,p_email:appointment.patient_email||null});
   if(resolved.error||!resolved.data){toast("Não foi possível criar/vincular o prontuário: "+(resolved.error?.message||"paciente não identificado"));go("agenda");return}
   patientId=resolved.data;

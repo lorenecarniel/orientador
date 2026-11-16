@@ -19,7 +19,7 @@
     #od-chat-panel.od-open{display:flex;flex-direction:column}
     #od-chat-head{padding:18px 18px 16px;background:linear-gradient(135deg,#01355E,#0c527f);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:12px;box-shadow:0 3px 12px #01355e20}
     #od-chat-head .od-brand{display:flex;align-items:center;gap:11px;min-width:0}
-    #od-chat-head .od-mark{width:39px;height:39px;flex:0 0 39px;border-radius:13px;background:#ffffff1c;border:1px solid #ffffff35;display:grid;place-items:center;font-size:17px;font-weight:800}
+    #od-chat-head .od-mark{width:42px;height:42px;flex:0 0 42px;border-radius:50%;background:#ffffff1c;border:1px solid #ffffff55;display:grid;place-items:center;font-size:17px;font-weight:800;overflow:hidden}#od-chat-head .od-mark img{width:100%;height:100%;object-fit:cover;display:block}
     #od-chat-head strong{display:block;font-size:14px;letter-spacing:.01em}
     #od-chat-head small{display:block;margin-top:4px;font-size:11px;color:#d5e5f1}
     #od-chat-close{width:34px;height:34px;border:0;border-radius:10px;background:#ffffff18;color:#fff;font-size:23px;line-height:1;cursor:pointer}
@@ -51,7 +51,7 @@
   const panel = document.createElement("section");
   panel.id = "od-chat-panel";
   panel.setAttribute("aria-label", "Chat de atendimento");
-  panel.innerHTML = '<header id="od-chat-head"><div class="od-brand"><div class="od-mark" aria-hidden="true">O</div><div><strong>Atendimento virtual</strong><small>Estamos aqui para ajudar você</small></div></div><button id="od-chat-close" aria-label="Fechar">×</button></header><div id="od-chat-log" aria-live="polite"></div><div id="od-chat-status">Atendimento online</div><div id="od-chat-choices"></div><form id="od-chat-actions"><input id="od-chat-input" autocomplete="name" placeholder="Digite sua mensagem..." maxlength="2000" required><button id="od-chat-send" type="submit">Enviar</button></form>';
+  panel.innerHTML = '<header id="od-chat-head"><div class="od-brand"><div class="od-mark" id="od-chat-avatar" aria-hidden="true">O</div><div><strong id="od-chat-professional-name">OrientaDor</strong><small>Estamos aqui para ajudar você</small></div></div><button id="od-chat-close" aria-label="Fechar">×</button></header><div id="od-chat-log" aria-live="polite"></div><div id="od-chat-status">Atendimento online</div><div id="od-chat-choices"></div><form id="od-chat-actions"><input id="od-chat-input" autocomplete="name" placeholder="Digite sua mensagem..." maxlength="2000" required><button id="od-chat-send" type="submit">Enviar</button></form>';
   document.body.append(launcher, panel);
   const log = panel.querySelector("#od-chat-log");
   const input = panel.querySelector("#od-chat-input");
@@ -90,6 +90,14 @@
     return data;
   }
   function showResult(data) {
+    if (data.professional_avatar_url) {
+      const avatar = panel.querySelector("#od-chat-avatar");
+      if (avatar) avatar.innerHTML = '<img src="' + String(data.professional_avatar_url).replace(/"/g, "&quot;") + '" alt="">';
+    }
+    if (data.professional_name) {
+      const name = panel.querySelector("#od-chat-professional-name");
+      if (name) name.textContent = data.professional_name;
+    }
     if (Array.isArray(data.preceding_messages)) data.preceding_messages.forEach((message) => bubble(message, "bot"));
     if (data.message) bubble(data.message, "bot");
     if (data.professional_phone) professionalPhone = String(data.professional_phone).replace(/\\D/g, "");

@@ -70,7 +70,7 @@
     const el = document.createElement("div");
     el.className = "od-bubble " + (who === "user" ? "od-user" : "od-bot");
     const value = String(text || "");
-    const urlPattern = /(https?:\\/\\/[^\\s]+)/g;
+    const urlPattern = /(https?:\/\/[^\s]+)/g;
     let cursor = 0;
     let match;
     while ((match = urlPattern.exec(value)) !== null) {

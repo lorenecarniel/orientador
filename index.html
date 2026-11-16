@@ -1888,16 +1888,8 @@ class Component extends DCLogic {
     p7: ['Treinamento funcional', 'Fortalecimento', 'Prevenção de lesões'],
     p8: ['Retorno ao esporte', 'Fortalecimento', 'Exercício orientado']
   };
-  PROS = [
-    { id: 'p1', name: 'Dra. Helena Prado', profession: 'Médica ortopedista', specialty: 'Joelho e lesões relacionadas à prática de esportes', registration: 'CRM fictício 00000-SP', city: 'São Paulo', state: 'SP', modality: 'Presencial e Online', types: ['ortopedia'], contact: 'contato@exemplo-ficticio.br', availability: 'Segunda a quinta, manhã', care: 'Primeira avaliação e retornos', rating: '4,9', reviews: '128 avaliações', description: 'Perfil fictício criado para teste da experiência. Atua em avaliação de queixas relacionadas ao joelho e encaminhamentos.' },
-    { id: 'p2', name: 'Dr. Rafael Beltrão', profession: 'Médico ortopedista', specialty: 'Traumatologia e dor após queda ou torção', registration: 'CRM fictício 00000-RJ', city: 'Rio de Janeiro', state: 'RJ', modality: 'Presencial', types: ['ortopedia'], contact: 'contato@exemplo-ficticio.br', availability: 'Terça e quinta, tarde', care: 'Avaliação de quadros recentes', rating: '4,7', reviews: '86 avaliações', description: 'Perfil fictício criado para teste da experiência.' },
-    { id: 'p3', name: 'Camila Nogueira', profession: 'Fisioterapeuta', specialty: 'Reabilitação de joelho e recuperação funcional', registration: 'CREFITO fictício 000000-F', city: 'São Paulo', state: 'SP', modality: 'Presencial e Online', types: ['fisioterapia'], contact: 'contato@exemplo-ficticio.br', availability: 'Segunda a sexta', care: 'Avaliação funcional e acompanhamento', rating: '4,9', reviews: '128 avaliações', description: 'Perfil fictício criado para teste da experiência.' },
-    { id: 'p4', name: 'Marcos Vinícius Leal', profession: 'Fisioterapeuta', specialty: 'Dor musculoesquelética que persiste há semanas ou meses', registration: 'CREFITO fictício 000000-F', city: 'Rio de Janeiro', state: 'RJ', modality: 'Online', types: ['fisioterapia'], contact: 'contato@exemplo-ficticio.br', availability: 'Horários à noite', care: 'Orientação e acompanhamento remoto', rating: '4,8', reviews: '96 avaliações', description: 'Perfil fictício criado para teste da experiência.' },
-    { id: 'p5', name: 'Dra. Tereza Kimura', profession: 'Médica reumatologista', specialty: 'Dor articular, inchaço e quadros inflamatórios', registration: 'CRM fictício 00000-PR', city: 'Curitiba', state: 'PR', modality: 'Presencial e Online', types: ['reumatologia'], contact: 'contato@exemplo-ficticio.br', availability: 'Quartas e sextas', care: 'Primeira avaliação', rating: '4,8', reviews: '112 avaliações', description: 'Perfil fictício criado para teste da experiência.' },
-    { id: 'p6', name: 'Dr. Sérgio Amado', profession: 'Educador físico\n', specialty: 'Primeira avaliação e orientação sobre próximos passos', registration: 'CRM fictício 00000-MG', city: 'Belo Horizonte', state: 'MG', modality: 'Presencial', types: ['clinica'], contact: 'contato@exemplo-ficticio.br', availability: 'Segunda a sexta, manhã', care: 'Avaliação geral', rating: '4,6', reviews: '64 avaliações', description: 'Perfil fictício criado para teste da experiência.' },
-    { id: 'p7', name: 'Juliana Reis', profession: 'Profissional de educação física', specialty: 'Exercício orientado e fortalecimento, com acompanhamento', registration: 'CREF fictício 000000-G', city: 'Campinas', state: 'SP', modality: 'Presencial', types: ['educacao_fisica'], contact: 'contato@exemplo-ficticio.br', availability: 'Manhãs e fins de tarde', care: 'Acompanhamento de exercício', rating: '4,7', reviews: '58 avaliações', description: 'Perfil fictício criado para teste da experiência.' },
-    { id: 'p8', name: 'André Salgado', profession: 'Fisioterapeuta', specialty: 'Retorno gradual à atividade física', registration: 'CREFITO fictício 000000-F', city: 'Belo Horizonte', state: 'MG', modality: 'Presencial e Online', types: ['fisioterapia', 'educacao_fisica'], contact: 'contato@exemplo-ficticio.br', availability: 'Terças, quintas e sábados', care: 'Avaliação e progressão de exercícios', rating: '4,7', reviews: '74 avaliações', description: 'Perfil fictício criado para teste da experiência.' }
-  ];
+  PROS = [];
+
 
   ROUTES = {
     '#/': 'home', '#/como-funciona': 'home', '#/seguranca': 'home', '#/acessibilidade': 'home',
@@ -1912,7 +1904,7 @@ class Component extends DCLogic {
     region: null, side: null, answers: {}, qIdx: 0, createdAt: null,
     alertLevel: null, outOfScope: null, helpOpen: false,
     speech: 'idle', voice: 'idle', transcript: '', voiceError: '', notesDraft: '',
-    proId: null, modality: 'Todas', toast: '', saved: false, summaryOpen: false, voiceMatch: '', partial: '',
+    proId: null, modality: 'Todas', toast: '', saved: false, summaryOpen: false, voiceMatch: '', partial: '', directoryLoaded: false, directoryError: '',
     city: 'todas', specialty: 'todas', savedPros: [],
     placeMode: 'todas', placeQuery: '', coords: null, geoStatus: 'idle', geoError: '',
     history: [], hint: false
@@ -2074,8 +2066,51 @@ class Component extends DCLogic {
     this._dm.rec.forEach((r, el) => Object.keys(r).filter(k => k[0] !== '@').forEach(p => this.dmRelease(el, p)));
     this._dm.rec.clear(); this._dm.level = new WeakMap(); this._dm.snap = new WeakMap();
   }
-  componentDidMount() {
+    async loadPublicProfessionals() {
+    const endpoint = 'https://dxejugiflvijsnvlnglh.supabase.co/rest/v1/professional_profiles?select=id,full_name,professional_type,specialty,phone,city,address,location_url,registration_number,public_bio,education,experience,public_email,website_url,instagram_url,linkedin_url,avatar_url,accepted_insurances,is_public&is_public=eq.true&order=full_name.asc';
+    const publicKey = 'sb_publishable_e31Emr1ieS-8zgEjwyqUyg_f-MMtEFF';
+    try {
+      const response = await fetch(endpoint, { headers: { apikey: publicKey, Authorization: 'Bearer ' + publicKey } });
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const rows = await response.json();
+      const classify = value => {
+        const v = String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        if (v.includes('fisioter')) return 'fisioterapia';
+        if (v.includes('ortoped')) return 'ortopedia';
+        if (v.includes('reumat')) return 'reumatologia';
+        if (v.includes('educador') || v.includes('educacao fisica') || v.includes('personal')) return 'educacao_fisica';
+        if (v.includes('clinico') || v.includes('medico')) return 'clinica';
+        return 'fisioterapia';
+      };
+      this.PROS = (Array.isArray(rows) ? rows : []).map(row => {
+        const profession = row.professional_type || 'Profissional da saúde';
+        const cityParts = String(row.city || '').split(' - ');
+        const plans = Array.isArray(row.accepted_insurances) ? row.accepted_insurances : [];
+        return {
+          id: row.id, name: row.full_name || 'Profissional', profession,
+          specialty: row.specialty || 'Atuação profissional', registration: row.registration_number || 'Registro não informado',
+          city: cityParts[0] || row.city || 'Localização não informada', state: cityParts[1] || '',
+          modality: 'Consulte as modalidades disponíveis', types: [classify(profession + ' ' + (row.specialty || ''))],
+          contact: row.public_email || row.phone || '', availability: 'Consulte os horários disponíveis no calendário',
+          care: row.experience || 'Consulte informações com o profissional',
+          rating: null, reviews: '', description: row.public_bio || '',
+          avatar_url: row.avatar_url || '', location_url: row.location_url || '',
+          address: [row.address, row.city].filter(Boolean).join(', '),
+          education: row.education || '', experience: row.experience || '',
+          public_email: row.public_email || '', website_url: row.website_url || '',
+          instagram_url: row.instagram_url || '', linkedin_url: row.linkedin_url || '',
+          accepted_insurances: plans
+        };
+      });
+      this.setState({ directoryLoaded: true, directoryError: '' });
+    } catch (error) {
+      console.error('[OrientaDor] Falha ao carregar profissionais públicos:', error);
+      this.setState({ directoryLoaded: true, directoryError: 'Não foi possível carregar os profissionais agora.' });
+    }
+  }
+componentDidMount() {
     this.syncTheme();
+    this.loadPublicProfessionals();
     this._mq = window.matchMedia('(max-width: 1024px)');
     this._onMq = () => this.setState({ narrow: this._mq.matches });
     this._onMq();

@@ -1848,7 +1848,7 @@ class Component extends DCLogic {
     p7: 'Av. Norte-Sul, 1200 – Cambuí, Campinas – SP',
     p8: 'Rua da Bahia, 1148 – Lourdes, Belo Horizonte – MG'
   };
-  proAddress(p) { return this.PRO_ADDR[p.id] || (p.city + ' – ' + p.state); }
+  proAddress(p) { return p.address || this.PRO_ADDR[p.id] || [p.city, p.state].filter(Boolean).join(' – ') || 'Localização não informada'; }
   /* DADOS MOCK — convênios fictícios para demonstração */
   PRO_INS = {
     p1: { particular: true, plans: ['Unimed', 'Bradesco Saúde', 'SulAmérica'] },
@@ -2865,10 +2865,10 @@ componentDidMount() {
         return { savedPros: list.indexOf(p.id) >= 0 ? list.filter(x => x !== p.id) : list.concat(p.id) };
       }),
       open: () => { this.track('professional_profile_viewed'); this.setState({ proId: p.id, proTab: 'sobre', toast: '' }); this.go('#/profissionais/' + p.id); },
-      contact: () => this.setState({ toast: 'Contato de demonstração: ' + p.contact + ' — perfil fictício, nenhuma mensagem é enviada nesta versão.' })
+      contact: () => { if (p.public_email) window.location.href = 'mailto:' + p.public_email; else this.setState({ toast: 'Este profissional ainda não informou um e-mail público para contato.' }); }
     }));
 
-    const pro = this.PROS.find(p => p.id === s.proId) || this.PROS[0];
+    const pro = this.PROS.find(p => p.id === s.proId) || this.PROS[0] || { id: '', name: 'Carregando profissional', profession: '', specialty: '', registration: '', city: '', state: '', modality: '', types: [], contact: '', availability: '', care: '', rating: null, reviews: '', description: '', accepted_insurances: [], education: '', experience: '', public_email: '', website_url: '', instagram_url: '', linkedin_url: '', address: '', location_url: '' };
 
     const hist = s.history;
     const maxI = Math.max(1, ...hist.map(h => h.intensity || 0));
@@ -3208,7 +3208,7 @@ componentDidMount() {
         return { label, on, select: () => { this.setState({ proTab: id }); const el = document.getElementById('pro-sec-' + id); if (el) window.scrollTo({ top: window.pageYOffset + el.getBoundingClientRect().top - 140, behavior: 'smooth' }); }, border: on ? t['--accent-ink2'] : 'transparent', fg: on ? t['--brand'] : t['--ink2'], weight: on ? 700 : 500 };
       }),
       proAddress: this.proAddress(pro),
-      proMapLink: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(this.proAddress(pro)),
+      proMapLink: pro.location_url || ('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(this.proAddress(pro))),
       proMapEmbed: 'https://www.google.com/maps?q=' + encodeURIComponent(this.proAddress(pro)) + '&output=embed',
       proInsSummary: this.proInsSummary(pro),
       proInsParticular: this.proIns(pro).particular,
@@ -3233,7 +3233,7 @@ componentDidMount() {
         { label: 'Disponibilidade', value: pro.availability },
         { label: 'Contato', value: pro.contact }
       ],
-      contactPro: () => this.setState({ toast: 'Contato de demonstração: ' + pro.contact + ' — perfil fictício, nenhuma mensagem é enviada nesta versão.' }),
+      contactPro: () => { if (pro.public_email) window.location.href = 'mailto:' + pro.public_email; else this.setState({ toast: 'Este profissional ainda não informou um e-mail público para contato.' }); },
       routePro: () => this.setState({ toast: 'Endereço de demonstração. Em uma versão real, aqui abriria a rota até o consultório.' }),
 
       hasHistory: hist.length > 0, emptyHistory: hist.length === 0, historyBars, historyItems,

@@ -13,21 +13,35 @@
   const endpoint = supabaseUrl + "/functions/v1/chatbot-runtime";
   const style = document.createElement("style");
   style.textContent = `
-    #od-chat-launcher{position:fixed;right:22px;bottom:22px;z-index:2147483000;border:0;border-radius:999px;padding:15px 20px;background:#063b52;color:#fff;font:600 15px Arial;box-shadow:0 8px 26px #102b3b33;cursor:pointer}
-    #od-chat-panel{position:fixed;right:22px;bottom:82px;z-index:2147483000;width:min(370px,calc(100vw - 28px));height:min(570px,calc(100vh - 115px));background:#fff;border:1px solid #dce5e9;border-radius:18px;box-shadow:0 16px 50px #102b3b35;display:none;overflow:hidden;font:14px Arial,sans-serif;color:#183746}
+    #od-chat-launcher{position:fixed;right:24px;bottom:24px;z-index:2147483000;border:0;border-radius:999px;padding:15px 21px;background:#01355E;color:#fff;font:700 14px Inter,Arial,sans-serif;box-shadow:0 10px 30px #01355e35;cursor:pointer;transition:transform .2s,box-shadow .2s}
+    #od-chat-launcher:hover{transform:translateY(-2px);box-shadow:0 14px 34px #01355e45}
+    #od-chat-panel{position:fixed;right:24px;bottom:88px;z-index:2147483000;width:min(390px,calc(100vw - 32px));height:min(620px,calc(100vh - 120px));background:#fff;border:1px solid #dce7ef;border-radius:22px;box-shadow:0 22px 65px #0c2c4530;display:none;overflow:hidden;font:14px Inter,ui-sans-serif,Arial,sans-serif;color:#183342}
     #od-chat-panel.od-open{display:flex;flex-direction:column}
-    #od-chat-head{padding:16px;background:#063b52;color:#fff;display:flex;justify-content:space-between;align-items:center}
-    #od-chat-head strong{font-size:15px}#od-chat-close{border:0;background:transparent;color:#fff;font-size:24px;cursor:pointer}
-    #od-chat-log{flex:1;overflow:auto;padding:14px;background:#f7fafb;display:flex;flex-direction:column;gap:10px}
-    .od-bubble{max-width:88%;padding:10px 12px;border-radius:13px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
-    .od-bot{align-self:flex-start;background:#fff;border:1px solid #e2e9ec}.od-user{align-self:flex-end;background:#dcefe8}
-    #od-chat-actions{padding:12px;border-top:1px solid #e6ecef;display:flex;gap:8px}
-    #od-chat-input{min-width:0;flex:1;border:1px solid #d3dfe4;border-radius:10px;padding:11px;font-size:14px}
-    #od-chat-send{border:0;border-radius:10px;padding:0 15px;background:#063b52;color:#fff;font-weight:600;cursor:pointer}
-    .od-choice{border:1px solid #9cb8c4;border-radius:999px;padding:9px 12px;background:#fff;color:#063b52;cursor:pointer;text-align:left}
-    #od-chat-choices{display:flex;flex-wrap:wrap;gap:8px;padding:0 12px 12px;background:#f7fafb}
-    #od-chat-status{font-size:12px;color:#667d88;padding:0 14px 8px;background:#f7fafb}
-    @media(max-width:480px){#od-chat-panel{right:10px;bottom:75px;width:calc(100vw - 20px);height:70vh}#od-chat-launcher{right:14px;bottom:14px}}
+    #od-chat-head{padding:18px 18px 16px;background:linear-gradient(135deg,#01355E,#0c527f);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:12px;box-shadow:0 3px 12px #01355e20}
+    #od-chat-head .od-brand{display:flex;align-items:center;gap:11px;min-width:0}
+    #od-chat-head .od-mark{width:39px;height:39px;flex:0 0 39px;border-radius:13px;background:#ffffff1c;border:1px solid #ffffff35;display:grid;place-items:center;font-size:17px;font-weight:800}
+    #od-chat-head strong{display:block;font-size:14px;letter-spacing:.01em}
+    #od-chat-head small{display:block;margin-top:4px;font-size:11px;color:#d5e5f1}
+    #od-chat-close{width:34px;height:34px;border:0;border-radius:10px;background:#ffffff18;color:#fff;font-size:23px;line-height:1;cursor:pointer}
+    #od-chat-close:hover{background:#ffffff2b}
+    #od-chat-log{flex:1;overflow:auto;padding:18px 14px;background:#f5f8fb;display:flex;flex-direction:column;gap:11px;scroll-behavior:smooth}
+    .od-bubble{max-width:88%;padding:12px 14px;border-radius:16px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;box-shadow:0 2px 8px #18334208}
+    .od-bot{align-self:flex-start;background:#fff;border:1px solid #e4ebf1;border-bottom-left-radius:5px;color:#263f50}
+    .od-user{align-self:flex-end;background:#e4effa;border:1px solid #d5e5f5;border-bottom-right-radius:5px;color:#123c60}
+    #od-chat-status{display:flex;align-items:center;gap:7px;font-size:11px;color:#6c7f8e;padding:9px 16px 10px;background:#fff;border-top:1px solid #edf1f5}
+    #od-chat-status:before{content:"";width:7px;height:7px;border-radius:50%;background:#23a477;display:inline-block;flex:0 0 7px}
+    #od-chat-choices{display:flex;flex-wrap:wrap;gap:8px;padding:4px 14px 14px;background:#fff}
+    .od-choice{border:1px solid #cbdceb;border-radius:12px;padding:10px 13px;background:#fff;color:#01355E;cursor:pointer;text-align:left;font:600 12px Inter,Arial,sans-serif;transition:background .15s,border-color .15s,transform .15s}
+    .od-choice:hover{background:#edf4fb;border-color:#83a9ca;transform:translateY(-1px)}
+    .od-choice:focus-visible,#od-chat-send:focus-visible,#od-chat-close:focus-visible{outline:3px solid #8bbce3;outline-offset:2px}
+    #od-chat-actions{padding:12px 14px 14px;border-top:1px solid #e8eef3;background:#fff;display:flex;gap:9px;align-items:center}
+    #od-chat-input{min-width:0;flex:1;border:1px solid #d8e2ea;border-radius:13px;padding:12px 13px;font:13px Inter,Arial,sans-serif;color:#183342;background:#f9fbfd;outline:none;transition:border-color .15s,box-shadow .15s}
+    #od-chat-input:focus{border-color:#6c9fc8;box-shadow:0 0 0 3px #e5f0f9;background:#fff}
+    #od-chat-input:disabled{background:#f0f3f6}
+    #od-chat-send{border:0;border-radius:12px;padding:0 17px;min-height:42px;background:#01355E;color:#fff;font:700 12px Inter,Arial,sans-serif;cursor:pointer;transition:background .15s}
+    #od-chat-send:hover{background:#0b527f}#od-chat-send:disabled{opacity:.55;cursor:wait}
+    @media(max-width:600px){#od-chat-panel{right:10px;bottom:78px;width:calc(100vw - 20px);height:min(72vh,640px);border-radius:20px}#od-chat-launcher{right:14px;bottom:14px;padding:14px 18px}#od-chat-log{padding:14px 11px}}
+    @media(prefers-reduced-motion:reduce){#od-chat-launcher,.od-choice{transition:none}#od-chat-log{scroll-behavior:auto}}
   `;
   document.head.appendChild(style);
   const launcher = document.createElement("button");
@@ -37,7 +51,7 @@
   const panel = document.createElement("section");
   panel.id = "od-chat-panel";
   panel.setAttribute("aria-label", "Chat de atendimento");
-  panel.innerHTML = '<header id="od-chat-head"><strong>Atendimento virtual</strong><button id="od-chat-close" aria-label="Fechar">×</button></header><div id="od-chat-log" aria-live="polite"></div><div id="od-chat-status">Atendimento administrativo</div><div id="od-chat-choices"></div><form id="od-chat-actions"><input id="od-chat-input" autocomplete="name" placeholder="Digite sua mensagem..." maxlength="2000" required><button id="od-chat-send" type="submit">Enviar</button></form>';
+  panel.innerHTML = '<header id="od-chat-head"><div class="od-brand"><div class="od-mark" aria-hidden="true">O</div><div><strong>Atendimento virtual</strong><small>Estamos aqui para ajudar você</small></div></div><button id="od-chat-close" aria-label="Fechar">×</button></header><div id="od-chat-log" aria-live="polite"></div><div id="od-chat-status">Atendimento online</div><div id="od-chat-choices"></div><form id="od-chat-actions"><input id="od-chat-input" autocomplete="name" placeholder="Digite sua mensagem..." maxlength="2000" required><button id="od-chat-send" type="submit">Enviar</button></form>';
   document.body.append(launcher, panel);
   const log = panel.querySelector("#od-chat-log");
   const input = panel.querySelector("#od-chat-input");

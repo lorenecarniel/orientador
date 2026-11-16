@@ -588,6 +588,7 @@ async function submitAuth(e){
 function showPanel(user){
  currentUser=user;$("#authRoot").innerHTML="";$(".app").classList.remove("auth-locked");
  if($("#userAvatar"))$("#userAvatar").textContent=(user.user_metadata?.full_name||user.email||"OD").slice(0,2).toUpperCase();
+ odSupabase.from("professional_profiles").select("full_name,avatar_url").eq("id",user.id).maybeSingle().then(({data})=>{if(data)updateHeaderAvatar(data.avatar_url,data.full_name||user.user_metadata?.full_name||user.email||"OD")});
  if($("#logoutBtn"))$("#logoutBtn").onclick=async()=>{const {error}=await odSupabase.auth.signOut();if(error)toast("Não foi possível sair: "+error.message)};
  render();
  refreshHeaderNotifications();

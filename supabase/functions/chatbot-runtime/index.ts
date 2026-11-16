@@ -68,10 +68,12 @@ function buildAboutMessage(vars: Record<string, unknown>, professionalName: stri
 function buildLocationMessage(vars: Record<string, unknown>) {
   const address = String(vars.address || "").trim();
   const city = String(vars.city || "").trim();
-  if (!address && !city) return "A localização do consultório ainda não foi cadastrada pelo profissional.";
+  const mapsUrl = String(vars.location_url || "").trim();
   const query = [address, city].filter(Boolean).join(", ");
-  const mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
-  return "Localização do consultório:\n" + query + "\n\nAbrir no Google Maps:\n" + mapsUrl;
+  if (mapsUrl) return "Localização do consultório:\n" + (query || "Veja a localização no mapa.") + "\n\nAbrir localização no Google Maps:\n" + mapsUrl;
+  if (!query) return "A localização do consultório ainda não foi cadastrada pelo profissional.";
+  const generatedUrl = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
+  return "Localização do consultório:\n" + query + "\n\nAbrir no Google Maps:\n" + generatedUrl;
 }
 
 async function addMessage(conversationId: string, direction: "inbound" | "outbound", content: string, metadata: Record<string, unknown> = {}) {
@@ -239,7 +241,7 @@ Deno.serve(async (request) => {
       if (!start) return json({ error: "O fluxo publicado não possui bloco de início." }, 422);
 
       const { data: profile } = await db.from("professional_profiles")
-        .select("full_name,avatar_url,professional_type,specialty,public_bio,city,address,phone,accepted_insurances")
+        .select("full_name,avatar_url,professional_type,specialty,public_bio,city,address,location_url,registration_number,phone,accepted_insurances")
         .eq("id", bot.professional_id).maybeSingle();
       const professionalName = profile?.full_name || "nossa equipe";
       const professionalAvatarUrl = profile?.avatar_url || null;
@@ -249,6 +251,8 @@ Deno.serve(async (request) => {
         public_bio: profile?.public_bio || "",
         city: profile?.city || "",
         address: profile?.address || "",
+        location_url: profile?.location_url || "",
+        registration_number: profile?.registration_number || "",
         professional_phone: profile?.phone || "",
         accepted_insurances: profile?.accepted_insurances || [],
       };

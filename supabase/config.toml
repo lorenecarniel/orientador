@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.google-calendar-oauth-callback]
 verify_jwt = false
+
+[functions.submit-pre-consultation]
+verify_jwt = false

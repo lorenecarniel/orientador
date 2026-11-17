@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     appointmentId = String(body.appointment_id || "");
     const action = String(body.action || "sync");
-    if (!appointmentId || !["sync", "cancel"].includes(action)) return json({ error: "Informe um agendamento e uma ação válida." }, 400);
+    if (!appointmentId || !["sync", "start", "cancel"].includes(action)) return json({ error: "Informe um agendamento e uma ação válida." }, 400);
 
     const { data: appointment, error: appointmentError } = await admin
       .from("appointments")
@@ -138,19 +138,21 @@ Deno.serve(async (req) => {
     };
 
     let response: Response;
+    if (action === "start" && appointment.modality === "online") {
+      eventBody.conferenceData = {
+        createRequest: {
+          requestId: crypto.randomUUID(),
+          conferenceSolutionKey: { type: "hangoutsMeet" },
+        },
+      };
+    }
+
+    let response: Response;
     if (eventId) {
-      response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}`, {
+      response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(eventId)}${action === "start" ? "?conferenceDataVersion=1" : ""}`, {
         method: "PATCH", headers, body: JSON.stringify(eventBody),
       });
     } else {
-      if (appointment.modality === "online") {
-        eventBody.conferenceData = {
-          createRequest: {
-            requestId: crypto.randomUUID(),
-            conferenceSolutionKey: { type: "hangoutsMeet" },
-          },
-        };
-      }
       response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates=all", {
         method: "POST", headers, body: JSON.stringify(eventBody),
       });

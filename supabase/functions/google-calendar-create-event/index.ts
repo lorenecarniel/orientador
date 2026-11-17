@@ -137,7 +137,6 @@ Deno.serve(async (req) => {
       end: { dateTime: end.toISOString() },
     };
 
-    let response: Response;
     if (action === "start" && appointment.modality === "online") {
       eventBody.conferenceData = {
         createRequest: {

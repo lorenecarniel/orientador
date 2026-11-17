@@ -68,6 +68,7 @@
  <button data-page="conversations"><span class="ico">▤</span>Conversas</button>
  <button data-page="agenda"><span class="ico">▦</span>Agenda</button>
  <button data-page="patients"><span class="ico">♙</span>Pacientes</button>
+ <button data-page="preConsultations"><span class="ico">▤</span>Pré-consultas</button>
  
  <button data-page="builder"><span class="ico">⌘</span>Construtor de fluxos</button>
  <button data-page="channels"><span class="ico">◉</span>Canais</button>
@@ -116,14 +117,14 @@ const templates=[
 {id:"faq",icon:"☷",name:"Dúvidas frequentes",desc:"Respostas administrativas sobre serviços, preparo, endereço e formas de pagamento.",nodes:[initialNodes[0],{id:"welcome",type:"message",title:"Apresentação",text:"Olá! Posso ajudar com informações sobre o atendimento."},{id:"faqmenu",type:"options",title:"Escolha uma dúvida",text:"Serviços · Endereço · Pagamento · Preparação para consulta"},{id:"answer",type:"message",title:"Resposta cadastrada",text:"Apresentar conteúdo informativo configurado pelo profissional."},initialNodes[7]]}
 ];
 let state={page:"overview",nodes:JSON.parse(localStorage.getItem("od_nodes")||"null")||structuredClone(initialNodes),selected:"welcome",flowName:localStorage.getItem("od_flowName")||"Atendimento inicial — Saúde",flowId:null,chatbotId:null,flowDirty:false,flowLoading:false,edges:structuredClone(initialEdges),previewTemplateId:null,conversations:JSON.parse(localStorage.getItem("od_conversations")||"[]"),channel:JSON.parse(localStorage.getItem("od_channel")||"{}")};
-const labels={consultation:"Atendimento clínico",overview:"Visão geral",conversations:"Conversas",agenda:"Agenda",patients:"Pacientes",builder:"Construtor de fluxos",channels:"Canais",profile:"Meu perfil",settings:"Configurações",patientRecord:"Prontuário do paciente"};
+const labels={consultation:"Atendimento clínico",overview:"Visão geral",conversations:"Conversas",agenda:"Agenda",patients:"Pacientes",builder:"Construtor de fluxos",channels:"Canais",profile:"Meu perfil",settings:"Configurações",patientRecord:"Prontuário do paciente",preConsultations:"Pré-consultas"};
 const types={start:["▶","Início"],message:["▤","Mensagem"],question:["?","Pergunta"],options:["☷","Opções"],condition:["◇","Condição"],action:["⚡","Ação / integração"],appointment:["▦","Agendar consulta"],handoff:["♧","Atendimento humano"],end:["✓","Finalização"]};
 function save(){localStorage.setItem("od_nodes",JSON.stringify(state.nodes));localStorage.setItem("od_flowName",state.flowName);localStorage.setItem("od_conversations",JSON.stringify(state.conversations));localStorage.setItem("od_channel",JSON.stringify(state.channel))}
 function toast(t){let el=$("#toast");el.textContent=t;el.classList.remove("hidden");setTimeout(()=>el.classList.add("hidden"),2600)}
-function go(p){state.page=p;document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===p||(p==="consultation"&&b.dataset.page==="agenda")));$("#crumb").textContent=labels[p];render();if(p==="profile")loadProfessionalProfile();if((p==="builder"||p==="channels")&&!state.flowDirty&&!state.chatbotId)loadBuilderFromSupabase();if(p==="conversations")loadConversations();if(p==="agenda")loadAppointments();if(p==="patients")loadPatients();if(p==="patientRecord")loadPatientRecordPage()}
+function go(p){state.page=p;document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===p||(p==="consultation"&&b.dataset.page==="agenda")));$("#crumb").textContent=labels[p];render();if(p==="profile")loadProfessionalProfile();if((p==="builder"||p==="channels")&&!state.flowDirty&&!state.chatbotId)loadBuilderFromSupabase();if(p==="conversations")loadConversations();if(p==="agenda")loadAppointments();if(p==="patients")loadPatients();if(p==="patientRecord")loadPatientRecordPage();if(p==="preConsultations")loadPreConsultations()}
 document.querySelectorAll("[data-page]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.page)));
 function heading(k,t,d,action=""){return '<div class="heading"><div><div class="eyebrow">'+k+'</div><h1>'+t+'</h1><p>'+d+'</p></div>'+action+'</div>'}
-function render(){let p=$("#page");if(state.page==="consultation")p.innerHTML=consultationPage();if(state.page==="overview")p.innerHTML=overview();if(state.page==="builder")p.innerHTML=builderPage();if(state.page==="conversations")p.innerHTML=conversationsPage();if(state.page==="agenda")p.innerHTML=agendaPage();if(state.page==="patients")p.innerHTML=patientsPage();if(state.page==="patientRecord")p.innerHTML=patientRecordPage();if(state.page==="channels")p.innerHTML=channelsPage();if(state.page==="profile")p.innerHTML=profilePage();if(state.page==="settings")p.innerHTML=settingsPage();bindPage()}
+function render(){let p=$("#page");if(state.page==="consultation")p.innerHTML=consultationPage();if(state.page==="overview")p.innerHTML=overview();if(state.page==="builder")p.innerHTML=builderPage();if(state.page==="conversations")p.innerHTML=conversationsPage();if(state.page==="agenda")p.innerHTML=agendaPage();if(state.page==="patients")p.innerHTML=patientsPage();if(state.page==="preConsultations")p.innerHTML=preConsultationsPage();if(state.page==="patientRecord")p.innerHTML=patientRecordPage();if(state.page==="channels")p.innerHTML=channelsPage();if(state.page==="profile")p.innerHTML=profilePage();if(state.page==="settings")p.innerHTML=settingsPage();bindPage()}
 function overview(){
  const firstName=(currentUser?.user_metadata?.full_name||currentUser?.email||"profissional").split(/[ @]/)[0];
  return '<section class="dash-welcome"><div><span class="dash-kicker">ESPAÇO DO PROFISSIONAL</span><h1>Olá, '+esc(firstName)+'! 👋</h1><p>Seu atendimento, sua agenda e suas automações em um só lugar.</p></div><button class="btn primary" data-go="builder">＋ Criar fluxo</button></section>'+
@@ -821,6 +822,35 @@ async function connectGoogleCalendar(){
 function settingsPage(){return heading("CONFIGURAÇÕES","Preferências do atendimento","Personalize os dados utilizados nos templates e no atendimento automatizado.")+
 '<div class="panel" style="margin-bottom:16px"><div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><h3 style="margin:0 0 5px">Google Agenda e Meet</h3><p class="sub" style="margin:0">Conecte sua conta para permitir que o OrientaDor crie eventos e links de videoconferência.</p><small id="googleCalendarStatus" class="sub">Verificando conexão...</small></div><button class="btn primary" id="connectGoogleCalendar" type="button">Conectar Google Agenda</button></div></div>'+
 '<div class="two"><div class="panel"><h3>Dados do profissional</h3><p class="sub">Informações utilizadas nas mensagens dinâmicas.</p><div class="field"><label>Nome do profissional</label><input id="proName" placeholder="Ex.: Dra. Ana Souza" value="'+attr(localStorage.getItem("od_proName")||"")+'"></div><div class="field"><label>Especialidade</label><input id="proSpecialty" placeholder="Ex.: Fisioterapia" value="'+attr(localStorage.getItem("od_proSpecialty")||"")+'"></div><div class="field"><label>Endereço / localização</label><input id="proAddress" placeholder="Endereço do consultório" value="'+attr(localStorage.getItem("od_proAddress")||"")+'"></div><button class="btn primary" id="saveSettings">Salvar configurações</button></div><div class="panel"><h3>Regras gerais</h3><div class="field"><label>Tempo de inatividade (minutos)</label><input type="number" min="1" value="15"></div><div class="field"><label>Mensagem de transferência</label><textarea>Vou encaminhar você para nossa equipe de atendimento.</textarea></div><div class="note">Configurações de produção, consentimentos, retenção de dados e políticas de privacidade deverão ser persistidos no Supabase com controle de acesso por profissional.</div></div></div>'}
+
+let preConsultationsCache=[];
+function preConsultationsPage(){
+ return heading("NOVOS CONTATOS","Pré-consultas","Respostas enviadas pelo site OrientaDor por pessoas interessadas em iniciar atendimento.")+
+ '<section class="panel patient-list-panel"><div class="patient-list-head"><div><h3>Pré-consultas recebidas</h3><p class="sub">As respostas são privadas e visíveis apenas na sua conta profissional.</p></div><span class="pill" id="preConsultationsCount">0 recebidas</span></div><div id="preConsultationsList" class="patient-list"><div class="empty">Carregando pré-consultas...</div></div></section>';
+}
+async function loadPreConsultations(){
+ if(!currentUser||!odSupabase)return;
+ const host=$("#preConsultationsList");if(!host)return;
+ const {data,error}=await odSupabase.from("pre_consultations").select("id,patient_name,patient_phone,patient_email,region,side,assessment_answers,assessment_summary,triage_risk,status,consent_at,created_at").eq("professional_id",currentUser.id).order("created_at",{ascending:false});
+ if(error){host.innerHTML='<div class="empty">Não foi possível carregar as pré-consultas.<br><small>'+esc(error.message)+'</small></div>';return}
+ preConsultationsCache=data||[];renderPreConsultations();
+}
+function renderPreConsultations(){
+ const host=$("#preConsultationsList");if(!host)return;
+ $("#preConsultationsCount").textContent=preConsultationsCache.length+" recebida(s)";
+ const labels={new:"Nova",contacted:"Contato realizado",converted:"Convertida em paciente",closed:"Encerrada"};
+ host.innerHTML=preConsultationsCache.length?preConsultationsCache.map(item=>{
+  const answers=item.assessment_answers&&typeof item.assessment_answers==="object"?item.assessment_answers:{};
+  const rows=Object.entries(answers).map(([key,value])=>'<div class="detail-row"><b>'+esc(key)+'</b>'+esc(Array.isArray(value)?value.join(", "):(typeof value==="object"?JSON.stringify(value):String(value??"—")))+'</div>').join("");
+  return '<article class="panel" style="margin:12px 0;padding:18px"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><span class="pill">'+esc(labels[item.status]||item.status)+'</span><h3 style="margin:10px 0 4px">'+esc(item.patient_name)+'</h3><p class="sub" style="margin:0">'+new Date(item.created_at).toLocaleString("pt-BR")+'</p></div><div style="text-align:right"><b>'+esc(item.patient_phone)+'</b><p class="sub" style="margin:4px 0">'+esc(item.patient_email||"E-mail não informado")+'</p></div></div><div class="detail-row"><b>Região / lado</b>'+esc(item.region||"—")+' · '+esc(item.side||"—")+'</div><div class="detail-row"><b>Classificação de triagem</b>'+esc(item.triage_risk||"Não informada")+'</div><details style="margin:14px 0"><summary style="cursor:pointer;font-weight:700;color:var(--navy)">Ver respostas do questionário</summary><div style="padding-top:10px">'+(rows||'<p class="sub">Nenhuma resposta detalhada registrada.</p>')+'</div><div class="detail-row"><b>Orientação</b>'+esc(item.assessment_summary?.orientation||"—")+'</div><div class="detail-row"><b>Tipos de profissional sugeridos</b>'+esc((item.assessment_summary?.professionalTypes||[]).join(", ")||"—")+'</div></details><div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="https://wa.me/'+esc(item.patient_phone.replace(/\\D/g,""))+'" target="_blank" rel="noopener noreferrer">Conversar no WhatsApp</a>'+(item.status==="new"?'<button class="btn primary" data-pre-status="'+item.id+'" data-status="contacted">Marcar contato realizado</button>':'')+(item.status!=="closed"?'<button class="btn" data-pre-status="'+item.id+'" data-status="closed">Encerrar</button>':'')+'</div></article>';
+ }).join(""):'<div class="empty">Nenhuma pré-consulta recebida ainda.</div>';
+ host.querySelectorAll("[data-pre-status]").forEach(button=>button.onclick=()=>updatePreConsultationStatus(button.dataset.preStatus,button.dataset.status));
+}
+async function updatePreConsultationStatus(id,status){
+ const {error}=await odSupabase.from("pre_consultations").update({status,updated_at:new Date().toISOString()}).eq("id",id).eq("professional_id",currentUser.id);
+ if(error){toast("Não foi possível atualizar: "+error.message);return}
+ toast("Pré-consulta atualizada.");loadPreConsultations();
+}
 
 let patientsCache=[];
 let selectedPatientId=null;

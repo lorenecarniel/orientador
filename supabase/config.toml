@@ -4,4 +4,7 @@ project_id = "dxejugiflvijsnvlnglh"
 verify_jwt = false
 
 [functions.google-calendar-oauth-callback]
-verify_jwt = false\n\n[functions.submit-pre-consultation]\nverify_jwt = false\n
+verify_jwt = false
+
+[functions.submit-pre-consultation]
+verify_jwt = false

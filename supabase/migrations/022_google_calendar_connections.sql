@@ -9,12 +9,6 @@ create table if not exists public.google_calendar_connections (
 );
 alter table public.google_calendar_connections enable row level security;
 revoke all on public.google_calendar_connections from anon, authenticated;
-grant select on public.google_calendar_connections to authenticated;
-drop policy if exists "Professionals can view own Google connection" on public.google_calendar_connections;
-create policy "Professionals can view own Google connection"
-  on public.google_calendar_connections for select to authenticated
-  using (auth.uid() = professional_id);
-
 create table if not exists public.google_calendar_oauth_states (
   state text primary key,
   professional_id uuid not null references auth.users(id) on delete cascade,

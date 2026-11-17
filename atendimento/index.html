@@ -58,7 +58,7 @@
 .consult-session-header{display:grid;grid-template-columns:minmax(180px,1.4fr) repeat(4,minmax(95px,1fr));gap:10px;align-items:center;padding:13px 16px;margin-bottom:14px;border:1px solid var(--line);border-radius:14px;background:#fff}.consult-session-person strong{display:block;color:var(--navy);font-size:16px}.consult-session-person small,.consult-session-meta small{display:block;color:var(--muted);font-size:10px}.consult-session-meta b{display:block;font-size:12px;color:var(--ink);margin-top:3px}.consult-session-timer{font-variant-numeric:tabular-nums;font-size:17px!important;font-weight:800!important;color:var(--navy)!important}.consult-work-patientline{display:none!important}.consult-patient-save{margin-top:14px!important}
 @media(max-width:900px){.patient-record-main-grid{grid-template-columns:1fr}.patient-exams-panel{position:static}.consult-session-header{grid-template-columns:repeat(2,minmax(0,1fr))}.consult-session-person{grid-column:1/-1}}
 @media(max-width:600px){.consult-session-header{grid-template-columns:1fr 1fr}}
-</style></head>
+.agenda-types-panel [data-open-agenda-modal="type"]{color:var(--navy)!important}#savePatientClinical{margin-top:14px!important}</style></head>
 <body>
 <div class="app">
 <aside class="sidebar">
@@ -555,10 +555,10 @@ function renderAgendaAppointmentSidebar(items){
 }
 async function rescheduleAgendaAppointment(appointment){
  const date=prompt("Nova data (AAAA-MM-DD):",localDateKey(new Date(appointment.starts_at)));if(!date)return;
- if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)){toast("Informe a data no formato AAAA-MM-DD.");return}
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){toast("Informe a data no formato AAAA-MM-DD.");return}
  const oldStart=new Date(appointment.starts_at),duration=Math.max(15,Math.round((new Date(appointment.ends_at)-oldStart)/60000));
  const time=prompt("Novo horário (HH:MM):",oldStart.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}));if(!time)return;
- if(!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(time)){toast("Informe o horário no formato HH:MM.");return}
+ if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)){toast("Informe o horário no formato HH:MM.");return}
  const {data:slots,error:slotError}=await odSupabase.rpc("get_available_slots",{p_professional_id:currentUser.id,p_date:date,p_duration_minutes:duration});
  if(slotError){toast("Não foi possível validar o horário: "+slotError.message);return}
  const target=new Date(date+"T"+time+":00");

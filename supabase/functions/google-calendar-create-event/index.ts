@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
   let appointmentId: string | null = null;
   let professionalId: string | null = null;
   try {
-    const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\\s+/i, "");
+    const bearer = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     if (!bearer) return json({ error: "Sessão não informada." }, 401);
 
     const url = Deno.env.get("SUPABASE_URL")!;

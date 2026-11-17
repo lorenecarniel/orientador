@@ -40,7 +40,8 @@ Deno.serve(async (req) => {
       console.error("Google token exchange failed", tokens.error);
       return html("O Google não concluiu a autorização. Verifique as credenciais e tente novamente.", false);
     }
-    tokens.created_at = Math.floor(Date.now() / 1000);\n    const encrypted = await encrypt(JSON.stringify(tokens), Deno.env.get("GOOGLE_TOKEN_ENCRYPTION_KEY")!);
+    tokens.created_at = Math.floor(Date.now() / 1000);
+    const encrypted = await encrypt(JSON.stringify(tokens), Deno.env.get("GOOGLE_TOKEN_ENCRYPTION_KEY")!);
     let googleEmail: string | null = null;
     if (tokens.access_token) {
       const info = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", { headers: { Authorization: `Bearer ${tokens.access_token}` } });

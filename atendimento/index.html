@@ -797,7 +797,12 @@ async function loadGoogleCalendarStatus(){
  const btn=$("#connectGoogleCalendar");if(btn)btn.textContent=data.connected?"Reconectar Google Agenda":"Conectar Google Agenda";
 }
 async function syncAppointmentWithGoogle(appointmentId,action="sync"){
- const {data,error}=await odSupabase.functions.invoke("google-calendar-create-event",{body:{appointment_id:appointmentId,action}});
+ const {data:{session},error:sessionError}=await odSupabase.auth.getSession();
+ if(sessionError||!session?.access_token){return {ok:false,message:"Sua sessão expirou. Entre novamente no OrientaDor."}}
+ const {data,error}=await odSupabase.functions.invoke("google-calendar-create-event",{
+  body:{appointment_id:appointmentId,action},
+  headers:{Authorization:"Bearer "+session.access_token}
+ });
  if(error||data?.error){return {ok:false,message:data?.error||error?.message||"Falha ao sincronizar com o Google Agenda."}}
  return {ok:true,data};
 }

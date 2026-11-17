@@ -18,7 +18,7 @@ Deno.serve(async(req)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:cors});
  if(req.method!=="POST")return json({error:"Method not allowed"},405);
  try{
-  const bearer=(req.headers.get("Authorization")||"").replace(/^Bearer\\s+/i,"");if(!bearer)return json({error:"Sessão não informada."},401);
+  const bearer=(req.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"");if(!bearer)return json({error:"Sessão não informada."},401);
   const url=Deno.env.get("SUPABASE_URL")!,admin=createClient(url,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const userClient=createClient(url,Deno.env.get("SUPABASE_ANON_KEY")!,{global:{headers:{Authorization:`Bearer ${bearer}`}}});
   const {data:{user}}=await userClient.auth.getUser();if(!user)return json({error:"Sessão inválida."},401);

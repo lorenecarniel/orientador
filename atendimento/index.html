@@ -137,9 +137,6 @@ async function checkPlatformAdmin(){
  const {data,error}=await odSupabase.rpc("has_platform_role",{required_role:"admin"});
  if(error){console.warn("Não foi possível verificar permissões administrativas:",error.message);return false}
  isPlatformAdmin=!!data;
- const nav=$("#sidenav");
- if(nav&&isPlatformAdmin&&!nav.querySelector('[data-page="admin"]')){const b=document.createElement("button");b.dataset.page="admin";b.innerHTML='<span class="ico">⚙</span>Administração';nav.appendChild(b);b.onclick=()=>go("admin")}
- if(!isPlatformAdmin&&nav?.querySelector('[data-page="admin"]'))nav.querySelector('[data-page="admin"]').remove();
  return isPlatformAdmin;
 }
 function adminPage(){

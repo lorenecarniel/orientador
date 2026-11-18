@@ -1036,8 +1036,7 @@ function showPanel(user){
  odSupabase.from("professional_profiles").select("full_name,avatar_url").eq("id",user.id).maybeSingle().then(({data})=>{if(data)updateHeaderAvatar(data.avatar_url,data.full_name||user.user_metadata?.full_name||user.email||"OD")});
  if($("#logoutBtn"))$("#logoutBtn").onclick=async()=>{const {error}=await odSupabase.auth.signOut();if(error)toast("Não foi possível sair: "+error.message)};
  render();
- checkPlatformAdmin();
- ensureProfessionalOnboarding(user);
+ checkPlatformAdmin().then(isAdmin=>{if(!isAdmin)ensureProfessionalOnboarding(user)});
  refreshHeaderNotifications();
  if(!window.odConversationRefreshTimer){window.odConversationRefreshTimer=setInterval(()=>{if(!currentUser)return;refreshHeaderNotifications();if(state.page==="conversations"&&!document.querySelector("#conversationHistoryModal"))loadConversations()},12000)}
 }

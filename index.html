@@ -3071,7 +3071,7 @@ componentDidMount() {
         { id: 'termos', icon: 'description', label: 'Termos de uso' },
         { id: 'urgencia', icon: 'emergency', label: 'Em caso de urgência' }
       ].map(n => Object.assign(n, { go: () => this.scrollToId(n.id) })),
-      goMapa: () => this.go('#/avaliacao/regiao'), goEntenderDor: () => this.go('#/avaliacao/entender'), goResultado: () => this.go('#/avaliacao/resultado'), goHist: () => this.go('#/historico'),
+      goMapa: () => this.go('#/avaliacao/regiao'), goEntenderDor: () => this.go('#/avaliacao/entender'), goHist: () => this.go('#/historico'),
       filtersOpen: !!s.filtersOpen, filtersOpenStr: s.filtersOpen ? 'sim' : 'nao', filtersIcon: s.filtersOpen ? 'expand_less' : 'expand_more',
       toggleFilters: () => this.setState(st => ({ filtersOpen: !st.filtersOpen })),
       menuOpen: !!s.menuOpen, menuIcon: s.menuOpen ? 'close' : 'menu', menuAria: s.menuOpen ? 'Fechar menu' : 'Abrir menu',

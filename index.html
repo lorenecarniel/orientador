@@ -1227,7 +1227,7 @@
                 Encontrar profissionais
                 <span aria-hidden="true" style="font-family:'Material Symbols Rounded'; line-height:1; font-size:1.3em;">arrow_forward</span>
               </button>
-              <button onClick="{{ saveAssessment }}" style="display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 12px 22px; border-radius: 999px; border: 1px solid var(--line,#E6E9EC); background: var(--surface,#fff); color: var(--brand,#01355E); font-family: inherit; font-size: 0.9em; font-weight: 600; cursor: pointer">
+              <button onClick="{{ goEntenderDor }}" style="display:inline-flex; align-items:center; gap:10px; min-height:52px; padding:12px 22px; border-radius:999px; border:1px solid #B8DCD3; background:#EAF7F3; color:#075E55; font-family:inherit; font-size:0.9em; font-weight:700; cursor:pointer">\n                <span aria-hidden="true" style="font-family:'Material Symbols Rounded'; font-size:1.25em;">psychology</span>\n                Quero entender minha dor\n              </button>\n              <button onClick="{{ saveAssessment }}" style="display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 12px 22px; border-radius: 999px; border: 1px solid var(--line,#E6E9EC); background: var(--surface,#fff); color: var(--brand,#01355E); font-family: inherit; font-size: 0.9em; font-weight: 600; cursor: pointer">
                 <span aria-hidden="true" style="font-family:'Material Symbols Rounded'; line-height:1; font-size:1.3em; color:var(--accent-ink2,#0A6E5C);">{{ saveIcon }}</span>
                 {{ saveLabel }}
               </button>
@@ -1300,6 +1300,57 @@
 
         
       </div>
+    </sc-if>
+
+    <!-- ============ ENTENDA SUA DOR ============ -->
+    <sc-if value="{{ isEntenderDor }}" hint-placeholder-val="{{ false }}">
+      <main data-s="pain-guide" style="max-width:1080px; width:100%; margin:0 auto; padding:140px 20px 64px; display:flex; flex-direction:column; gap:22px; box-sizing:border-box;">
+        <button onClick="{{ goResultado }}" style="align-self:flex-start; display:inline-flex; align-items:center; gap:8px; border:0; background:transparent; color:#0A6E5C; font:600 0.95em inherit; cursor:pointer; padding:8px 0;">
+          <span aria-hidden="true" style="font-family:'Material Symbols Rounded';">arrow_back</span> Voltar ao direcionamento
+        </button>
+        <header style="display:flex; flex-direction:column; gap:10px; max-width:760px;">
+          <span style="font-size:.82em; font-weight:700; letter-spacing:.1em; color:#0A806F;">ORIENTADOR • CONHECIMENTO SOBRE A DOR</span>
+          <h1 style="margin:0; color:#01355E; font-family:'Poppins',sans-serif; font-size:clamp(1.8em,4vw,2.6em); line-height:1.15;">Quero entender minha dor</h1>
+          <p style="margin:0; color:#4A6472; font-size:1.05em; line-height:1.7;">Uma explicação clara para ajudar você a compreender melhor o que relatou, conhecer possibilidades e se preparar para conversar com um profissional.</p>
+        </header>
+        <section style="padding:22px 24px; border:1px solid #CDE7DF; border-radius:20px; background:#F0F8F5; display:flex; gap:14px; align-items:flex-start;">
+          <span aria-hidden="true" style="font-family:'Material Symbols Rounded'; font-size:1.7em; color:#08796A;">auto_awesome</span>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <strong style="color:#075E55;">Seu relatório educativo</strong>
+            <p style="margin:0; color:#315C59; line-height:1.6;">Esta primeira versão apresenta a estrutura de orientação para dor musculoesquelética. A análise personalizada por inteligência artificial e as referências científicas serão ativadas na próxima etapa, após a integração e revisão da base de conhecimento.</p>
+          </div>
+        </section>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:16px;">
+          <article style="padding:24px; border:1px solid #E2E9EC; border-radius:20px; background:#FFFFFF; display:flex; flex-direction:column; gap:10px;">
+            <span style="font-family:'Material Symbols Rounded'; color:#0A806F; font-size:1.6em;">assignment</span>
+            <h2 style="margin:0; color:#01355E; font-size:1.12em;">1. O que você relatou</h2>
+            <p style="margin:0; color:#4A6472; line-height:1.65;">Aqui serão organizadas suas respostas sobre localização, início, intensidade, características e fatores que influenciam a dor.</p>
+          </article>
+          <article style="padding:24px; border:1px solid #E2E9EC; border-radius:20px; background:#FFFFFF; display:flex; flex-direction:column; gap:10px;">
+            <span style="font-family:'Material Symbols Rounded'; color:#0A806F; font-size:1.6em;">neurology</span>
+            <h2 style="margin:0; color:#01355E; font-size:1.12em;">2. O que pode estar relacionado</h2>
+            <p style="margin:0; color:#4A6472; line-height:1.65;">Serão apresentadas possibilidades explicativas compatíveis com o relato, sempre indicando limites, incertezas e o que não é possível concluir apenas pelo questionário.</p>
+          </article>
+          <article style="padding:24px; border:1px solid #E2E9EC; border-radius:20px; background:#FFFFFF; display:flex; flex-direction:column; gap:10px;">
+            <span style="font-family:'Material Symbols Rounded'; color:#0A806F; font-size:1.6em;">menu_book</span>
+            <h2 style="margin:0; color:#01355E; font-size:1.12em;">3. Entenda melhor</h2>
+            <p style="margin:0; color:#4A6472; line-height:1.65;">Conteúdos educativos revisados, com linguagem simples e referências identificáveis, para explicar estruturas e fatores que podem participar da dor.</p>
+          </article>
+          <article style="padding:24px; border:1px solid #E2E9EC; border-radius:20px; background:#FFFFFF; display:flex; flex-direction:column; gap:10px;">
+            <span style="font-family:'Material Symbols Rounded'; color:#0A806F; font-size:1.6em;">checklist</span>
+            <h2 style="margin:0; color:#01355E; font-size:1.12em;">4. Próximos passos</h2>
+            <p style="margin:0; color:#4A6472; line-height:1.65;">Orientações para buscar avaliação adequada e preparar perguntas para o profissional, sem prescrever tratamentos ou substituir uma consulta.</p>
+          </article>
+        </div>
+        <section style="padding:22px 24px; border-radius:18px; background:#FFF8E9; border:1px solid #F1DDAF; display:flex; gap:12px; align-items:flex-start;">
+          <span aria-hidden="true" style="font-family:'Material Symbols Rounded'; color:#94651A; font-size:1.5em;">health_and_safety</span>
+          <p style="margin:0; color:#6B552C; line-height:1.65;"><strong>Importante:</strong> este conteúdo é educativo e não fornece diagnóstico. Se a dor for intensa ou surgir com piora rápida, febre ou após um trauma importante, procure avaliação presencial. Em caso de emergência, procure um serviço de urgência.</p>
+        </section>
+        <div style="display:flex; flex-wrap:wrap; gap:12px;">
+          <button onClick="{{ goProfs }}" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:50px; padding:12px 22px; border:0; border-radius:999px; background:#01355E; color:#FFFFFF; font:600 0.95em inherit; cursor:pointer;">Encontrar profissionais <span aria-hidden="true" style="font-family:'Material Symbols Rounded';">arrow_forward</span></button>
+          <button onClick="{{ goResultado }}" style="display:inline-flex; align-items:center; justify-content:center; min-height:50px; padding:12px 22px; border:1px solid #D7E1E5; border-radius:999px; background:#FFFFFF; color:#01355E; font:600 0.95em inherit; cursor:pointer;">Voltar ao resultado</button>
+        </div>
+      </main>
     </sc-if>
 
     <!-- ============ PROFISSIONAIS ============ -->
@@ -1887,12 +1938,12 @@ class Component extends DCLogic {
     '#/': 'home', '#/como-funciona': 'home', '#/seguranca': 'home', '#/acessibilidade': 'home',
     '#/privacidade': 'legal', '#/termos': 'legal', '#/avaliacao': 'mapa', '#/avaliacao/regiao': 'mapa',
     '#/avaliacao/joelho': 'quest', '#/avaliacao/voz': 'voz', '#/avaliacao/questionario': 'quest', '#/avaliacao/alerta': 'alerta',
-    '#/avaliacao/resultado': 'resultado', '#/profissionais': 'profs', '#/historico': 'hist'
+    '#/avaliacao/resultado': 'resultado', '#/avaliacao/entender': 'entender', '#/profissionais': 'profs', '#/historico': 'hist'
   };
 
   state = {
     micPerm: 'unknown', talk: 'idle', talkText: '', talkInterim: '', talkError: '', talkParsed: null, talkRemoved: {}, voiceFlow: false,
-    screen: 'home', scaleIdx: 0, hc: false,
+    screen: 'home', scaleIdx: 0, hc: false, painGuideOpen: false,
     region: null, side: null, answers: {}, qIdx: 0, createdAt: null,
     alertLevel: null, outOfScope: null, helpOpen: false,
     speech: 'idle', voice: 'idle', transcript: '', voiceError: '', notesDraft: '',
@@ -3000,7 +3051,7 @@ componentDidMount() {
       retryTalk: () => this.setState({ talk: 'idle', talkParsed: null, talkRemoved: {}, talkError: '' }),
       confirmTalk: () => this.confirmTalk(),
       isLado: false, isQuest: s.screen === 'quest' && !!q, isAlerta: s.screen === 'alerta',
-      isResultado: s.screen === 'resultado', isProfs: s.screen === 'profs', isPerfil: s.screen === 'perfil', isHist: s.screen === 'hist',
+      isResultado: s.screen === 'resultado', isEntenderDor: s.screen === 'entender', isProfs: s.screen === 'profs', isPerfil: s.screen === 'perfil', isHist: s.screen === 'hist',
 
       skipToContent: () => {
         const el = document.getElementById('conteudo');
@@ -3020,7 +3071,7 @@ componentDidMount() {
         { id: 'termos', icon: 'description', label: 'Termos de uso' },
         { id: 'urgencia', icon: 'emergency', label: 'Em caso de urgência' }
       ].map(n => Object.assign(n, { go: () => this.scrollToId(n.id) })),
-      goMapa: () => this.go('#/avaliacao/regiao'), goHist: () => this.go('#/historico'),
+      goMapa: () => this.go('#/avaliacao/regiao'), goEntenderDor: () => this.go('#/avaliacao/entender'), goResultado: () => this.go('#/avaliacao/resultado'), goHist: () => this.go('#/historico'),
       filtersOpen: !!s.filtersOpen, filtersOpenStr: s.filtersOpen ? 'sim' : 'nao', filtersIcon: s.filtersOpen ? 'expand_less' : 'expand_more',
       toggleFilters: () => this.setState(st => ({ filtersOpen: !st.filtersOpen })),
       menuOpen: !!s.menuOpen, menuIcon: s.menuOpen ? 'close' : 'menu', menuAria: s.menuOpen ? 'Fechar menu' : 'Abrir menu',

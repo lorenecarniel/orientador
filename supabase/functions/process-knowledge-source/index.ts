@@ -3,7 +3,7 @@ import { extractText, getDocumentProxy } from "npm:unpdf@0.12.1";
 import mammoth from "npm:mammoth@1.9.0";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://orientador.app",
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Vary": "Origin",
@@ -74,9 +74,8 @@ async function createEmbeddings(texts: string[]): Promise<number[][]> {
 }
 
 Deno.serve(async (req) => {
-  const origin = req.headers.get("origin") || "";
-  const headers = { ...corsHeaders, "Access-Control-Allow-Origin": origin || "null" };
-  if (req.method === "OPTIONS") return new Response("ok", { headers });
+  let processingSourceId = "";
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Método não permitido." }, 405);
   try {
     if (!openAiKey) return json({ error: "A chave OPENAI_API_KEY ainda não foi configurada nos secrets do Supabase." }, 503);
@@ -94,6 +93,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const sourceId = String(body.source_id || "");
+    processingSourceId = sourceId;
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sourceId))
       return json({ error: "Identificador do material inválido." }, 400);
 
@@ -150,10 +150,9 @@ Deno.serve(async (req) => {
     console.error("process-knowledge-source:", error);
     const message = error instanceof Error ? error.message : "Falha ao processar material.";
     try {
-      const body = await req.clone().json();
-      if (body.source_id) await adminDb.from("knowledge_sources").update({
+      if (processingSourceId) await adminDb.from("knowledge_sources").update({
         processing_status: "failed", processing_error: message.slice(0, 1000),
-      }).eq("id", String(body.source_id));
+      }).eq("id", processingSourceId);
     } catch { /* no-op */ }
     return json({ error: message }, 500);
   }

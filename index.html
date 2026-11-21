@@ -1381,8 +1381,8 @@
             </sc-if>
             <sc-if value="{{ painReportCare.length > 0 }}" hint-placeholder-val="{{ false }}">
               <div style="padding:20px;border-radius:16px;background:#F2F8F6;border:1px solid #D7EAE3;">
-                <h3 style="margin:0 0 12px;color:#075E55;font-size:1.08em;">O que pode ajudar neste momento</h3>
-                <p style="margin:0 0 14px;color:#52716C;line-height:1.6;">As sugestões abaixo só aparecem quando encontram apoio nos materiais científicos consultados e são compatíveis com as respostas informadas.</p>
+                <h3 style="margin:0 0 12px;color:#075E55;font-size:1.08em;">Dúvidas práticas: o que posso fazer agora?</h3>
+                <p style="margin:0 0 14px;color:#52716C;line-height:1.6;">Estas orientações gerais vêm de fontes oficiais e consideram as respostas do questionário. Elas não substituem uma avaliação individual.</p>
                 <div style="display:flex;flex-direction:column;gap:14px;"><sc-for list="{{ painReportCare }}" as="item">
                   <article style="padding:16px;border-radius:13px;background:#FFFFFF;border:1px solid #DDEAE5;">
                     <strong style="display:block;color:#075E55;margin-bottom:7px;">{{ item.title }}</strong>
@@ -1967,6 +1967,7 @@ class Component extends DCLogic {
   RULES = [
     { id: 'rf_trauma_weight', severity: 'urgente', label: 'Dor após queda, batida ou torção e dificuldade para apoiar o peso na perna.', test: a => (a.trauma === 'Sim' || a.trauma === 'Não tenho certeza') && a.weight === 'Não consigo apoiar' },
     { id: 'rf_inflam', severity: 'urgente', label: 'Calor ou vermelhidão na região junto com febre relatada nos últimos dias.', test: a => a.heat === 'Sim' && a.fever === 'Sim' },
+    { id: 'rf_hot_swollen', severity: 'urgente', label: 'Joelho quente ou avermelhado junto com inchaço: precisa de avaliação presencial prioritária.', test: a => a.heat === 'Sim' && (a.swelling === 'Um pouco' || a.swelling === 'Bastante') },
     { id: 'rf_walk', severity: 'urgente', label: 'Dificuldade importante relatada para caminhar.', test: a => a.walk === 'Não consigo caminhar' },
     { id: 'rf_intensity', severity: 'atencao', label: 'Dor relatada como muito intensa neste momento.', test: a => Number(a.intensity) >= 9 },
     { id: 'rf_swell_trauma', severity: 'atencao', label: 'Inchaço importante depois de queda, batida ou torção.', test: a => a.swelling === 'Bastante' && (a.trauma === 'Sim' || a.trauma === 'Não tenho certeza') }

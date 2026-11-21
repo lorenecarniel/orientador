@@ -105,8 +105,9 @@ async function createEmbedding(input: string): Promise<number[]> {
         report: {
           summary: "Suas respostas indicam sinais que precisam de avaliação presencial prioritária.",
           possibilities: [],
-          educational: "Não é adequado gerar uma explicação automatizada antes de uma avaliação presencial. Procure um serviço de saúde com prioridade. Se houver piora importante ou situação de emergência, procure atendimento de urgência.",
-          next_steps: ["Procure avaliação presencial agora.", "Não use este relatório para decidir se deve adiar atendimento."],
+          self_care: [],
+          when_to_seek_help: [{ situation: flags.join(" "), action: "Procure avaliação presencial com prioridade. Se houver piora importante ou situação de emergência, procure atendimento de urgência." }],
+          educational: "Quero ter cuidado com você: pelas respostas, apareceram sinais que precisam ser avaliados presencialmente. Por segurança, não vou sugerir exercícios, gelo, calor ou outros cuidados antes dessa avaliação.",
         },
         sources: [],
       });
@@ -143,8 +144,9 @@ async function createEmbedding(input: string): Promise<number[]> {
         ok: true, urgent: false, report: {
           summary: "Recebemos suas respostas, mas ainda não encontramos conteúdo suficientemente relacionado na biblioteca científica para montar uma explicação personalizada.",
           possibilities: [],
-          educational: "Não vamos preencher essa lacuna com referências genéricas ou não verificadas. Você pode conversar com um profissional habilitado para interpretar seu relato.",
-          next_steps: ["Leve estas respostas a um profissional de saúde.", "A biblioteca poderá oferecer uma explicação mais completa quando houver materiais relevantes aprovados."],
+          self_care: [],
+          when_to_seek_help: [{ situation: "Se a dor persistir, piorar ou limitar suas atividades.", action: "Procure avaliação com um profissional de saúde habilitado." }],
+          educational: "Recebemos suas respostas e queremos ajudar você a entender melhor o que está sentindo. Neste momento, porém, os materiais aprovados da nossa biblioteca ainda não trazem informações suficientemente relacionadas ao seu caso. Para não oferecer uma orientação genérica ou inadequada, preferimos não indicar gelo, calor, pomadas ou exercícios sem uma base confiável. Quando a biblioteca tiver conteúdos mais específicos, poderemos explicar melhor essas possibilidades.",
         }, sources: [],
       });
     }
@@ -160,17 +162,40 @@ async function createEmbedding(input: string): Promise<number[]> {
       excerpt: String(item.chunk_content).slice(0, 2600),
       source_id: item.source_id,
     }));
-    const prompt = `Responda em português brasileiro, em JSON válido, com as chaves summary (string), possibilities (array de strings), educational (string), next_steps (array de strings) e source_refs (array de strings).
-Você é um assistente de educação em saúde musculoesquelética. Produza informação educativa, acolhedora e prudente a partir do relato e exclusivamente das evidências fornecidas.
-REGRAS OBRIGATÓRIAS:
-- Não diagnostique, não estime probabilidade diagnóstica e não afirme que uma condição está presente.
-- Apresente possibilidades apenas como fatores gerais que podem estar relacionados, deixando explícito que não é possível confirmar pelo questionário.
-- Não prescreva medicamentos, exercícios, tratamentos nem indique que a pessoa deve ignorar sintomas.
-- Não invente dados, resultados, referências, autores, datas ou recomendações.
-- Use somente os trechos fornecidos para afirmações científicas. Se não houver suporte, diga que a biblioteca não permite concluir.
-- As fontes citadas devem ser identificadas pelos códigos S1, S2 etc. Use somente códigos existentes.
-- Inclua próximos passos seguros e recomende avaliação por profissional habilitado, especialmente se houver persistência ou piora.
-- O relato é de joelho; não extrapole para outras regiões.
+    const prompt = `Responda em português brasileiro, em JSON válido, com estas chaves:
+summary (string),
+possibilities (array de objetos {title, explanation, evidence_refs}),
+self_care (array de objetos {title, recommendation, how_to, cautions, evidence_refs}),
+when_to_seek_help (array de objetos {situation, action}),
+educational (string),
+source_refs (array de strings).
+
+PAPEL E TOM:
+Você é um assistente de educação em saúde musculoesquelética. Fale com acolhimento, empatia e naturalidade, como alguém que explica com calma para uma pessoa leiga. Use frases curtas, palavras comuns e explique qualquer termo técnico. Não assuste, não julgue e não seja frio ou robótico. Reconheça que sentir dor pode ser desconfortável e que cada pessoa vive isso de um jeito.
+
+REGRAS CLÍNICAS OBRIGATÓRIAS:
+- Não diagnostique, não estime probabilidades e não diga que a pessoa tem uma doença ou lesão.
+- O relato é sobre joelho; não extrapole para outras regiões.
+- Use exclusivamente os trechos recuperados para afirmações científicas e recomendações clínicas. Não complete lacunas com conhecimento geral do modelo.
+- Não invente artigos, autores, datas, instituições, links, resultados ou recomendações.
+- Se os trechos não sustentarem uma orientação, não a inclua. Diga com delicadeza que a biblioteca ainda não tem informação suficiente para orientar aquele cuidado.
+- Não recomende automaticamente gelo, calor, pomadas, medicamentos, alongamentos, exercícios ou repouso. Só inclua uma opção quando os trechos sustentarem claramente a indicação e as respostas do paciente não trouxerem contraindicação ou sinal de alerta.
+- Não recomende nomes comerciais nem prescreva medicamentos. Para produtos tópicos, só mencione a possibilidade de conversar com farmacêutico ou profissional habilitado se a evidência fornecida justificar; nunca recomende produto específico.
+- Para cada possibilidade e cuidado, inclua os códigos evidence_refs correspondentes, apenas S1, S2 etc existentes. Se não houver suporte direto, deixe o array vazio e não faça a afirmação.
+- Para cuidados, explique de modo prático como fazer, por quanto tempo/frequência apenas se isso estiver explicitamente sustentado pelos trechos, e quais sinais indicam interromper. Não invente dose, duração ou frequência.
+- Se a evidência for insuficiente para cuidados imediatos, use self_care vazio e explique em educational que não é seguro indicar uma medida específica com os materiais disponíveis.
+- Inclua orientação de avaliação profissional se a dor persistir, piorar ou limitar atividades. Em sinais de alerta, priorize avaliação presencial e não ofereça exercícios ou autocuidado como substitutos.
+- Não diga que a pessoa está segura ou que não precisa de avaliação.
+- Seja claro sobre a incerteza sem ser alarmista.
+
+FORMATO:
+- summary: 2 a 4 frases, refletindo fielmente o que a pessoa contou, em linguagem simples.
+- possibilities: no máximo 3 fatores gerais, com explicação acessível; não transformar em diagnóstico.
+- self_care: no máximo 4 cuidados realmente sustentados pela evidência e adequados ao relato. Cada item deve ter título curto, recomendação, instruções práticas e cautelas.
+- when_to_seek_help: no máximo 4 situações concretas e ação indicada.
+- educational: explique de forma humana o que se pode compreender do relato e o que ainda não é possível concluir.
+- source_refs: selecione somente fontes realmente usadas.
+
 RELATO DO PACIENTE:
 ${summary}
 TRECHOS RECUPERADOS:
@@ -210,10 +235,24 @@ Retorne somente JSON válido.`;
       ok: true,
       urgent: false,
       report: {
-        summary: String(report.summary || "").slice(0, 1200),
-        possibilities: Array.isArray(report.possibilities) ? report.possibilities.slice(0, 5).map((v: unknown) => String(v).slice(0, 500)) : [],
-        educational: String(report.educational || "").slice(0, 2400),
-        next_steps: Array.isArray(report.next_steps) ? report.next_steps.slice(0, 5).map((v: unknown) => String(v).slice(0, 400)) : [],
+        summary: String(report.summary || "").slice(0, 1600),
+        possibilities: Array.isArray(report.possibilities) ? report.possibilities.slice(0, 3).map((v: any) => ({
+          title: String(v.title || "Possibilidade").slice(0, 120),
+          explanation: String(v.explanation || "").slice(0, 700),
+          evidence_refs: Array.isArray(v.evidence_refs) ? v.evidence_refs.filter((ref: string) => allowedRefs.has(ref)) : [],
+        })) : [],
+        self_care: Array.isArray(report.self_care) ? report.self_care.slice(0, 4).map((v: any) => ({
+          title: String(v.title || "Cuidado").slice(0, 120),
+          recommendation: String(v.recommendation || "").slice(0, 600),
+          how_to: String(v.how_to || "").slice(0, 700),
+          cautions: String(v.cautions || "").slice(0, 700),
+          evidence_refs: Array.isArray(v.evidence_refs) ? v.evidence_refs.filter((ref: string) => allowedRefs.has(ref)) : [],
+        })).filter((v: any) => v.recommendation && v.evidence_refs.length > 0) : [],
+        when_to_seek_help: Array.isArray(report.when_to_seek_help) ? report.when_to_seek_help.slice(0, 4).map((v: any) => ({
+          situation: String(v.situation || "").slice(0, 500),
+          action: String(v.action || "").slice(0, 400),
+        })).filter((v: any) => v.situation && v.action) : [],
+        educational: String(report.educational || "").slice(0, 2600),
       },
       sources: selectedSources,
     });

@@ -214,6 +214,7 @@ async function createEmbedding(input: string): Promise<number[]> {
       source_url: item.source_url || "",
     }])).values());
 
+    const care = practicalSelfCare(answers);
     if (!relevant.length) {
       return json({
         ok: true, urgent: false, report: {
@@ -226,7 +227,6 @@ async function createEmbedding(input: string): Promise<number[]> {
       });
     }
 
-    const care = practicalSelfCare(answers);
     const evidence = relevant.map((item: any, index: number) => ({
       ref: "S" + (index + 1),
       title: item.title,

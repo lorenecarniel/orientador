@@ -29,7 +29,7 @@ function urgentFlags(a: Answers): string[] {
     flags.push("Dor após queda, batida ou torção com incapacidade de apoiar o peso.");
   if (a.heat === "Sim" && a.fever === "Sim")
     flags.push("Calor ou vermelhidão no joelho junto com febre.");
-  if (a.heat === "Sim" && (a.swelling === "Um pouco" || a.swelling === "Bastante"))
+  if (a.heat === "Sim" && a.fever !== "Sim" && (a.swelling === "Um pouco" || a.swelling === "Bastante"))
     flags.push("Joelho quente ou avermelhado junto com inchaço: é necessária avaliação presencial prioritária, mesmo sem febre.");
   if (a.walk === "Não consigo caminhar" || a.weight === "Não consigo apoiar")
     flags.push("Incapacidade relatada de caminhar ou apoiar o peso.");

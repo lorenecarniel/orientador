@@ -1365,7 +1365,6 @@
             <div><span style="font-size:.75em;font-weight:700;letter-spacing:.1em;color:#08796A;">RESULTADO DA ANÁLISE EDUCATIVA</span>
               <h2 style="margin:8px 0;color:#01355E;font-family:'Poppins',sans-serif;font-size:1.45em;">O que encontramos no seu relato</h2>
               <p style="margin:0;color:#315C59;line-height:1.7;">{{ painReportSummary }}</p></div>
-            <div><h3 style="margin:0 0 8px;color:#01355E;font-size:1.05em;">O que suas respostas mostram</h3><p style="margin:0;color:#315C59;line-height:1.75;">{{ painReportSummary }}</p></div>
             <sc-if value="{{ painReportPossibilities.length > 0 }}" hint-placeholder-val="{{ false }}">
               <div><h3 style="margin:0 0 10px;color:#01355E;font-size:1.05em;">O que pode estar relacionado à sua dor?</h3>
                 <div style="display:flex;flex-direction:column;gap:12px;"><sc-for list="{{ painReportPossibilities }}" as="item">
@@ -1374,6 +1373,12 @@
               </div>
             </sc-if>
             <div><h3 style="margin:0 0 8px;color:#01355E;font-size:1.05em;">Vamos entender melhor</h3><p style="margin:0;color:#4A6472;line-height:1.8;white-space:pre-line;">{{ painReportEducational }}</p></div>
+            <sc-if value="{{ painReportCare.length === 0 }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:18px;border-radius:14px;background:#F2F8F6;border:1px solid #D7EAE3;">
+                <h3 style="margin:0 0 8px;color:#075E55;font-size:1.05em;">Cuidados neste momento</h3>
+                <p style="margin:0;color:#315C59;line-height:1.75;">Com as informações disponíveis, não encontramos uma orientação específica de autocuidado que possamos recomendar com segurança agora. Isso não significa que não existam medidas que possam ajudar; significa que não queremos sugerir gelo, calor ou exercícios sem considerar melhor seus sintomas e a evidência disponível. Um profissional poderá avaliar seu joelho e orientar o cuidado mais adequado.</p>
+              </div>
+            </sc-if>
             <sc-if value="{{ painReportCare.length > 0 }}" hint-placeholder-val="{{ false }}">
               <div style="padding:20px;border-radius:16px;background:#F2F8F6;border:1px solid #D7EAE3;">
                 <h3 style="margin:0 0 12px;color:#075E55;font-size:1.08em;">O que pode ajudar neste momento</h3>

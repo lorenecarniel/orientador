@@ -2280,6 +2280,7 @@ componentDidMount() {
     if (!this.state.painConsent) { this.setState({ painReportError: 'Para continuar, confirme que leu e aceita o envio das respostas para gerar o relatório educativo.' }); return; }
     const questionnaireId = this.state.questionnaireId || crypto.randomUUID();
     this.setState({ painReportLoading: true, painReportError: '', questionnaireId });
+    this.persist({ questionnaireId });
     const answers = Object.assign({}, this.state.answers || {}, { side: this.state.side || (this.state.answers || {}).side || '' });
     try {
       const response = await fetch('https://dxejugiflvijsnvlnglh.supabase.co/functions/v1/pain-guide-report', {

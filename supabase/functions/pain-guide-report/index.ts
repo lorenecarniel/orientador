@@ -29,9 +29,82 @@ function urgentFlags(a: Answers): string[] {
     flags.push("Dor após queda, batida ou torção com incapacidade de apoiar o peso.");
   if (a.heat === "Sim" && a.fever === "Sim")
     flags.push("Calor ou vermelhidão no joelho junto com febre.");
-  if (a.walk === "Não consigo caminhar")
-    flags.push("Incapacidade relatada de caminhar.");
+  if (a.heat === "Sim" && (a.swelling === "Um pouco" || a.swelling === "Bastante"))
+    flags.push("Joelho quente ou avermelhado junto com inchaço: é necessária avaliação presencial prioritária, mesmo sem febre.");
+  if (a.walk === "Não consigo caminhar" || a.weight === "Não consigo apoiar")
+    flags.push("Incapacidade relatada de caminhar ou apoiar o peso.");
   return flags;
+}
+
+const PRACTICAL_SOURCES = [
+  {
+    source_id: "external-nhs-knee-pain",
+    title: "Knee pain: self-care and when to seek help",
+    category: "autocuidado",
+    source_type: "Orientação oficial ao paciente",
+    author: "NHS",
+    institution: "National Health Service",
+    publication_year: 2023,
+    source_url: "https://www.nhs.uk/symptoms/knee-pain/",
+  },
+  {
+    source_id: "external-nhsinform-knee",
+    title: "Knee problems: ice, heat and movement",
+    category: "autocuidado",
+    source_type: "Orientação oficial ao paciente",
+    author: "NHS Inform",
+    institution: "NHS Scotland",
+    publication_year: 2026,
+    source_url: "https://www.nhsinform.scot/illnesses-and-conditions/muscle-bone-and-joints/leg-and-foot-problems-and-conditions/knee-problems",
+  },
+  {
+    source_id: "external-nice-ng226",
+    title: "Osteoarthritis in over 16s: diagnosis and management (NG226)",
+    category: "exercicios_terapeuticos",
+    source_type: "Diretriz clínica",
+    author: "NICE",
+    institution: "National Institute for Health and Care Excellence",
+    publication_year: 2022,
+    source_url: "https://www.nice.org.uk/guidance/ng226/chapter/Recommendations",
+  },
+];
+
+function practicalSelfCare(a: Answers) {
+  const items: any[] = [];
+  const swollen = a.swelling === "Um pouco" || a.swelling === "Bastante";
+  const recent = a.onset === "Hoje" || a.onset === "Há alguns dias";
+  if (swollen || recent) {
+    items.push({
+      title: "Gelo para aliviar dor e inchaço",
+      recommendation: "Como você relatou início recente ou inchaço, uma compressa fria pode ajudar a aliviar o desconforto. Ela não trata a causa da dor.",
+      how_to: "Coloque uma bolsa fria ou gelo envolvido em uma toalha fina sobre a região por até 20 minutos. O NHS orienta repetir a cada 2 a 3 horas, se necessário.",
+      cautions: "Nunca coloque gelo diretamente na pele. Retire se houver ardência, alteração importante da sensibilidade ou irritação. Como o questionário não identifica a causa, não use isso para adiar uma avaliação se a dor estiver limitando suas atividades.",
+      evidence_refs: [],
+    });
+  } else if (a.heat === "Não" && (a.onset === "Há algumas semanas" || a.onset === "Há alguns meses")) {
+    items.push({
+      title: "Gelo ou calor: escolha o que traz alívio",
+      recommendation: "Quando não há inchaço ou calor relatado, tanto o frio quanto o calor podem aliviar sintomas em alguns problemas no joelho. Não existe uma escolha universal para todos os casos.",
+      how_to: "Se experimentar, use uma bolsa fria ou morna envolvida em uma toalha por até 20 minutos. Faça uma pausa de algumas horas antes de repetir.",
+      cautions: "Não aplique diretamente na pele e interrompa se notar vermelhidão, mudança de cor ou bolhas. Evite calor se o joelho estiver inchado ou quente.",
+      evidence_refs: [],
+    });
+  }
+  items.push({
+    title: "Movimente sem forçar",
+    recommendation: "Repousar não precisa significar deixar o joelho completamente parado. Se você consegue movimentá-lo sem piora importante, movimentos leves dentro do limite confortável podem ajudar a evitar rigidez.",
+    how_to: "Por enquanto, reduza caminhadas longas, corrida, saltos, agachamentos e atividades que aumentem a dor. Faça apenas movimentos suaves nas atividades do dia a dia, sem insistir nem tentar vencer a dor.",
+    cautions: "Não faça alongamentos fortes nem exercícios de fortalecimento por conta própria nesta etapa. Pare se a dor aumentar, surgir instabilidade ou o inchaço piorar. Exercícios específicos devem ser escolhidos após avaliação.",
+    evidence_refs: [],
+  });
+  items.push({
+    title: "Pomadas e medicamentos",
+    recommendation: "O questionário não permite escolher com segurança uma pomada ou um medicamento para você. O tratamento depende da causa da dor e do seu histórico de saúde.",
+    how_to: "Converse com um farmacêutico ou profissional de saúde antes de usar um produto, especialmente se toma outros medicamentos, tem alergias, problemas no estômago, rins ou coração, ou está grávida.",
+    cautions: "Não comece anti-inflamatórios por conta própria nem combine produtos sem orientação. Diretrizes que recomendam anti-inflamatório tópico para osteoartrite se referem a pessoas com essa condição avaliada, não a qualquer dor no joelho.",
+    evidence_refs: [],
+  });
+  return items;
 }
 
 function answerSummary(a: Answers): string {
@@ -107,9 +180,9 @@ async function createEmbedding(input: string): Promise<number[]> {
           possibilities: [],
           self_care: [],
           when_to_seek_help: [{ situation: flags.join(" "), action: "Procure avaliação presencial com prioridade. Se houver piora importante ou situação de emergência, procure atendimento de urgência." }],
-          educational: "Quero ter cuidado com você: pelas respostas, apareceram sinais que precisam ser avaliados presencialmente. Por segurança, não vou sugerir exercícios, gelo, calor ou outros cuidados antes dessa avaliação.",
+          educational: "Quero ter cuidado com você: suas respostas mostram uma combinação de sinais que precisa ser avaliada presencialmente com prioridade. Um joelho quente ou avermelhado e inchado, principalmente quando há dificuldade para caminhar ou febre, precisa de avaliação para entender a causa. Até ser avaliado, evite exercícios, massagens e esforço sobre o joelho. Não use medidas caseiras para adiar o atendimento.",
         },
-        sources: [],
+        sources: PRACTICAL_SOURCES.slice(0, 2),
       });
     }
 
@@ -146,8 +219,8 @@ async function createEmbedding(input: string): Promise<number[]> {
           possibilities: [],
           self_care: [],
           when_to_seek_help: [{ situation: "Se a dor persistir, piorar ou limitar suas atividades.", action: "Procure avaliação com um profissional de saúde habilitado." }],
-          educational: "Recebemos suas respostas e queremos ajudar você a entender melhor o que está sentindo. Neste momento, porém, os materiais aprovados da nossa biblioteca ainda não trazem informações suficientemente relacionadas ao seu caso. Para não oferecer uma orientação genérica ou inadequada, preferimos não indicar gelo, calor, pomadas ou exercícios sem uma base confiável. Quando a biblioteca tiver conteúdos mais específicos, poderemos explicar melhor essas possibilidades.",
-        }, sources: [],
+          educational: "Recebemos suas respostas e queremos ajudar você a entender melhor o que está sentindo. A biblioteca ainda não trouxe um material específico para explicar a possível causa, então não vamos tentar adivinhar um diagnóstico. Mesmo assim, podemos compartilhar cuidados gerais de fontes oficiais, respeitando os sintomas que você informou.",
+        }, self_care: practicalSelfCare(answers), sources: PRACTICAL_SOURCES.slice(0, 2),
       });
     }
 
@@ -241,20 +314,16 @@ Retorne somente JSON válido.`;
           explanation: String(v.explanation || "").slice(0, 700),
           evidence_refs: Array.isArray(v.evidence_refs) ? v.evidence_refs.filter((ref: string) => allowedRefs.has(ref)) : [],
         })) : [],
-        self_care: Array.isArray(report.self_care) ? report.self_care.slice(0, 4).map((v: any) => ({
-          title: String(v.title || "Cuidado").slice(0, 120),
-          recommendation: String(v.recommendation || "").slice(0, 600),
-          how_to: String(v.how_to || "").slice(0, 700),
-          cautions: String(v.cautions || "").slice(0, 700),
-          evidence_refs: Array.isArray(v.evidence_refs) ? v.evidence_refs.filter((ref: string) => allowedRefs.has(ref)) : [],
-        })).filter((v: any) => v.recommendation && v.evidence_refs.length > 0) : [],
+        self_care: practicalSelfCare(answers),
         when_to_seek_help: Array.isArray(report.when_to_seek_help) ? report.when_to_seek_help.slice(0, 4).map((v: any) => ({
           situation: String(v.situation || "").slice(0, 500),
           action: String(v.action || "").slice(0, 400),
         })).filter((v: any) => v.situation && v.action) : [],
         educational: String(report.educational || "").slice(0, 2600),
       },
-      sources: selectedSources,
+      sources: [...selectedSources, ...PRACTICAL_SOURCES].filter((source, index, all) =>
+        all.findIndex((item) => item.source_id === source.source_id) === index
+      ),
     });
   } catch (error) {
     // Se a geração falhar tecnicamente, libera a reserva para permitir nova tentativa.

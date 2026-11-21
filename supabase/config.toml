@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.process-knowledge-source]
 verify_jwt = true
+
+[functions.pain-guide-report]
+verify_jwt = false

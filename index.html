@@ -1366,13 +1366,13 @@
               <h2 style="margin:8px 0;color:#01355E;font-family:'Poppins',sans-serif;font-size:1.45em;">O que encontramos no seu relato</h2>
               <p style="margin:0;color:#315C59;line-height:1.7;">{{ painReportSummary }}</p></div>
             <sc-if value="{{ painReportPossibilities.length > 0 }}" hint-placeholder-val="{{ false }}">
-              <div><h3 style="margin:0 0 10px;color:#01355E;font-size:1.05em;">O que pode estar relacionado à sua dor?</h3>
+              <div><h3 style="margin:0 0 10px;color:#01355E;font-size:1.05em;">Fatores que podem estar relacionados à sua dor</h3>
                 <div style="display:flex;flex-direction:column;gap:12px;"><sc-for list="{{ painReportPossibilities }}" as="item">
                   <article style="padding:16px;border:1px solid #E2E9EC;border-radius:14px;background:#FAFCFC;"><strong style="display:block;color:#075E55;margin-bottom:6px;">{{ item.title }}</strong><p style="margin:0;color:#4A6472;line-height:1.7;">{{ item.explanation }}</p></article>
                 </sc-for></div>
               </div>
             </sc-if>
-            <div><h3 style="margin:0 0 8px;color:#01355E;font-size:1.05em;">Vamos entender melhor</h3><p style="margin:0;color:#4A6472;line-height:1.8;white-space:pre-line;">{{ painReportEducational }}</p></div>
+            <div><h3 style="margin:0 0 8px;color:#01355E;font-size:1.05em;">O que isso significa para você?</h3><p style="margin:0;color:#4A6472;line-height:1.8;white-space:pre-line;">{{ painReportEducational }}</p></div>
             <sc-if value="{{ painReportCare.length === 0 }}" hint-placeholder-val="{{ false }}">
               <div style="padding:18px;border-radius:14px;background:#F2F8F6;border:1px solid #D7EAE3;">
                 <h3 style="margin:0 0 8px;color:#075E55;font-size:1.05em;">Cuidados neste momento</h3>
@@ -1382,7 +1382,7 @@
             <sc-if value="{{ painReportCare.length > 0 }}" hint-placeholder-val="{{ false }}">
               <div style="padding:20px;border-radius:16px;background:#F2F8F6;border:1px solid #D7EAE3;">
                 <h3 style="margin:0 0 12px;color:#075E55;font-size:1.08em;">Dúvidas práticas: o que posso fazer agora?</h3>
-                <p style="margin:0 0 14px;color:#52716C;line-height:1.6;">Estas orientações gerais vêm de fontes oficiais e consideram as respostas do questionário. Elas não substituem uma avaliação individual.</p>
+                <p style="margin:0 0 14px;color:#52716C;line-height:1.6;">Separamos algumas orientações gerais para suas dúvidas mais comuns. Leia também os cuidados e sinais de atenção de cada item; eles não substituem uma avaliação individual.</p>
                 <div style="display:flex;flex-direction:column;gap:14px;"><sc-for list="{{ painReportCare }}" as="item">
                   <article style="padding:16px;border-radius:13px;background:#FFFFFF;border:1px solid #DDEAE5;">
                     <strong style="display:block;color:#075E55;margin-bottom:7px;">{{ item.title }}</strong>

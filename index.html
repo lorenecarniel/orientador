@@ -1341,6 +1341,32 @@
           <h1 style="margin:0;color:#01355E;font-family:'Poppins',sans-serif;font-size:clamp(2em,4.5vw,3em);line-height:1.12;letter-spacing:-.03em;">Entenda melhor o que sua dor pode estar sinalizando.</h1>
           <p style="margin:0;color:#4A6472;font-size:1.04em;line-height:1.75;max-width:740px;">Informação clara, organizada e acolhedora para você conhecer sua condição, entender possibilidades e se preparar para buscar o cuidado adequado.</p>
         </header>
+        <section style="padding:26px;border:1px solid #CDE7DF;border-radius:22px;background:#F5FAF8;display:flex;flex-direction:column;gap:14px;">
+          <div><h2 style="margin:0 0 8px;color:#075E55;font-family:'Poppins',sans-serif;font-size:1.25em;">Seu relatório educativo personalizado</h2>
+            <p style="margin:0;color:#315C59;line-height:1.65;">Com base nas respostas deste questionário e nos materiais aprovados da nossa biblioteca, a IA pode organizar uma explicação educativa sobre sua dor no joelho.</p></div>
+          <label style="display:flex;gap:10px;align-items:flex-start;color:#315C59;line-height:1.55;font-size:.92em;">
+            <input type="checkbox" checked="{{ painConsent }}" onChange="{{ onPainConsent }}" style="margin-top:4px;flex:none;width:18px;height:18px;">
+            <span>Li e concordo que minhas respostas sobre saúde sejam enviadas à ferramenta de IA para gerar este relatório. Entendo que o conteúdo é educativo, não é diagnóstico e não substitui avaliação profissional.</span>
+          </label>
+          <button onClick="{{ generatePainReport }}" disabled="{{ painReportLoading || painReportUsed }}" style="align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:50px;padding:12px 22px;border:0;border-radius:999px;background:{{ painReportUsed ? '#82939B' : '#08796A' }};color:#FFFFFF;font:600 .95em inherit;cursor:{{ painReportUsed || painReportLoading ? 'not-allowed' : 'pointer' }};opacity:{{ painReportUsed || painReportLoading ? '.72' : '1' }};">
+            <span aria-hidden="true" style="font-family:'Material Symbols Rounded';">{{ painReportLoading ? 'hourglass_top' : 'auto_awesome' }}</span>
+            {{ painReportLoading ? 'Gerando seu relatório...' : painReportUsed ? 'Geração já utilizada' : 'Gerar meu relatório' }}
+          </button>
+          <p style="margin:0;color:#58716E;font-size:.84em;line-height:1.5;">Cada questionário permite uma única geração. Não criamos uma conta nem um histórico de relatórios nesta etapa.</p>
+          <p style="display:{{ painReportError ? 'block' : 'none' }};margin:0;color:#A33B2D;font-size:.92em;line-height:1.5;" role="alert">{{ painReportError }}</p>
+        </section>
+        <sc-if value="{{ painReportReady }}" hint-placeholder-val="{{ false }}">
+          <section style="padding:26px;border:1px solid #D9E7E3;border-radius:22px;background:#FFFFFF;display:flex;flex-direction:column;gap:18px;">
+            <div><span style="font-size:.75em;font-weight:700;letter-spacing:.1em;color:#08796A;">RESULTADO DA ANÁLISE EDUCATIVA</span>
+              <h2 style="margin:8px 0;color:#01355E;font-family:'Poppins',sans-serif;font-size:1.45em;">O que encontramos no seu relato</h2>
+              <p style="margin:0;color:#315C59;line-height:1.7;">{{ painReportSummary }}</p></div>
+            <sc-if value="{{ painReportPossibilities.length > 0 }}" hint-placeholder-val="{{ false }}"><div><h3 style="margin:0 0 8px;color:#01355E;font-size:1.05em;">Fatores que podem estar relacionados</h3><ul style="margin:0;padding-left:22px;color:#4A6472;line-height:1.7;"><sc-for list="{{ painReportPossibilities }}" as="item"><li>{{ item.text }}</li></sc-for></ul></div></sc-if>
+            <div><h3 style="margin:0 0 8px;color:#01355E;font-size:1.05em;">Entenda melhor</h3><p style="margin:0;color:#4A6472;line-height:1.75;white-space:pre-line;">{{ painReportEducational }}</p></div>
+            <sc-if value="{{ painReportSteps.length > 0 }}" hint-placeholder-val="{{ false }}"><div><h3 style="margin:0 0 8px;color:#01355E;font-size:1.05em;">Próximos passos</h3><ul style="margin:0;padding-left:22px;color:#4A6472;line-height:1.7;"><sc-for list="{{ painReportSteps }}" as="item"><li>{{ item.text }}</li></sc-for></ul></div></sc-if>
+            <sc-if value="{{ painReportSources.length > 0 }}" hint-placeholder-val="{{ false }}"><div><h3 style="margin:0 0 8px;color:#01355E;font-size:1.05em;">Materiais consultados</h3><ul style="margin:0;padding-left:22px;color:#4A6472;line-height:1.7;"><sc-for list="{{ painReportSources }}" as="src"><li><strong>{{ src.title }}</strong><span style="display:block;font-size:.9em;">{{ src.author }}</span><a href="{{ src.url }}" target="_blank" rel="noopener noreferrer" style="color:#08796A;">Acessar material</a></li></sc-for></ul></div></sc-if>
+            <p style="margin:0;padding:14px;border-radius:12px;background:#FFF8E9;color:#6B552C;line-height:1.6;font-size:.9em;">Este relatório é informativo e não estabelece diagnóstico. Procure um profissional habilitado para avaliação individual. Se houver sinais de urgência, busque atendimento presencial.</p>
+          </section>
+        </sc-if>
         <section style="position:relative;overflow:hidden;padding:30px;border:1px solid #CDE7DF;border-radius:24px;background:linear-gradient(135deg,#F0F8F5 0%,#E4F3EE 100%);display:flex;gap:18px;align-items:flex-start;">
           <span aria-hidden="true" style="flex:none;width:54px;height:54px;border-radius:17px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:30px;color:#08796A;">auto_awesome</span>
           <div style="display:flex;flex-direction:column;gap:8px;max-width:760px;">
@@ -1973,7 +1999,8 @@ class Component extends DCLogic {
   state = {
     micPerm: 'unknown', talk: 'idle', talkText: '', talkInterim: '', talkError: '', talkParsed: null, talkRemoved: {}, voiceFlow: false,
     screen: 'home', scaleIdx: 0, hc: false, painGuideOpen: false,
-    region: null, side: null, answers: {}, qIdx: 0, createdAt: null,
+    region: null, side: null, answers: {}, qIdx: 0, createdAt: null, questionnaireId: null,
+    painReportLoading: false, painReportError: '', painReport: null, painReportUsed: false, painConsent: false,
     alertLevel: null, outOfScope: null, helpOpen: false,
     speech: 'idle', voice: 'idle', transcript: '', voiceError: '', notesDraft: '',
     proId: null, modality: 'Todas', toast: '', saved: false, summaryOpen: false, voiceMatch: '', partial: '', directoryLoaded: false, directoryError: '',
@@ -2200,7 +2227,7 @@ componentDidMount() {
     try { prefs = JSON.parse(localStorage.getItem('orientador.prefs.v1') || '{}'); } catch (e) { prefs = {}; }
     this.setState({
       region: saved.region || null, side: saved.side || null, answers: saved.answers || {},
-      qIdx: saved.qIdx || 0, createdAt: saved.createdAt || null, notesDraft: (saved.answers && saved.answers.notes) || '',
+      qIdx: saved.qIdx || 0, createdAt: saved.createdAt || null, questionnaireId: saved.questionnaireId || crypto.randomUUID(), notesDraft: (saved.answers && saved.answers.notes) || '',
       history: Array.isArray(history) ? history : [],
       scaleIdx: prefs.scaleIdx || 0, hc: false
     }, () => this.readHash());
@@ -2245,8 +2272,28 @@ componentDidMount() {
     if (this.state.screen !== 'home') { this.go('#/'); setTimeout(run, 260); } else run();
   }
   persist(extra) {
-    const s = Object.assign({ region: this.state.region, side: this.state.side, answers: this.state.answers, qIdx: this.state.qIdx, createdAt: this.state.createdAt }, extra || {});
+    const s = Object.assign({ region: this.state.region, side: this.state.side, answers: this.state.answers, qIdx: this.state.qIdx, createdAt: this.state.createdAt, questionnaireId: this.state.questionnaireId }, extra || {});
     try { localStorage.setItem('orientador.assessment.v1', JSON.stringify(s)); } catch (e) {}
+  }
+  async generatePainReport() {
+    if (this.state.painReportLoading || this.state.painReportUsed) return;
+    if (!this.state.painConsent) { this.setState({ painReportError: 'Para continuar, confirme que leu e aceita o envio das respostas para gerar o relatório educativo.' }); return; }
+    const questionnaireId = this.state.questionnaireId || crypto.randomUUID();
+    this.setState({ painReportLoading: true, painReportError: '', questionnaireId });
+    const answers = Object.assign({}, this.state.answers || {}, { side: this.state.side || (this.state.answers || {}).side || '' });
+    try {
+      const response = await fetch('https://dxejugiflvijsnvlnglh.supabase.co/functions/v1/pain-guide-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: 'sb_publishable_e31Emr1ieS-8zgEjwyqUyg_f-MMtEFF' },
+        body: JSON.stringify({ questionnaire_id: questionnaireId, answers })
+      });
+      const result = await response.json();
+      if (response.status === 409) { this.setState({ painReportUsed: true, painReportError: result.error || 'Este questionário já utilizou sua geração de relatório.' }); return; }
+      if (!response.ok || !result.ok) throw new Error(result.error || 'Não foi possível gerar o relatório agora.');
+      this.setState({ painReport: result, painReportUsed: true, painReportError: '' });
+    } catch (error) {
+      this.setState({ painReportError: error && error.message ? error.message : 'Não foi possível gerar o relatório.' });
+    } finally { this.setState({ painReportLoading: false }); }
   }
   savePrefs(p) { try { localStorage.setItem('orientador.prefs.v1', JSON.stringify(p)); } catch (e) {} }
   track(event, payload) { /* eventos de produto — sem dados clínicos sensíveis */ console.info('[orientador:event]', event, payload || ''); }
@@ -3080,7 +3127,17 @@ componentDidMount() {
       retryTalk: () => this.setState({ talk: 'idle', talkParsed: null, talkRemoved: {}, talkError: '' }),
       confirmTalk: () => this.confirmTalk(),
       isLado: false, isQuest: s.screen === 'quest' && !!q, isAlerta: s.screen === 'alerta',
-      isResultado: s.screen === 'resultado', isEntenderDor: s.screen === 'entender', isProfs: s.screen === 'profs', isPerfil: s.screen === 'perfil', isHist: s.screen === 'hist',
+      isResultado: s.screen === 'resultado', isEntenderDor: s.screen === 'entender',
+      painReportLoading: !!s.painReportLoading, painReportError: s.painReportError || '',
+      painReportUsed: !!s.painReportUsed, painReportReady: !!s.painReport,
+      painConsent: !!s.painConsent,
+      onPainConsent: e => this.setState({ painConsent: !!e.target.checked, painReportError: '' }),
+      generatePainReport: () => this.generatePainReport(),
+      painReportSummary: s.painReport && s.painReport.report ? s.painReport.report.summary : '',
+      painReportEducational: s.painReport && s.painReport.report ? s.painReport.report.educational : '',
+      painReportPossibilities: s.painReport && s.painReport.report && Array.isArray(s.painReport.report.possibilities) ? s.painReport.report.possibilities.map(x => ({ text: x })) : [],
+      painReportSteps: s.painReport && s.painReport.report && Array.isArray(s.painReport.report.next_steps) ? s.painReport.report.next_steps.map(x => ({ text: x })) : [],
+      painReportSources: s.painReport && Array.isArray(s.painReport.sources) ? s.painReport.sources.map(x => ({ title: x.title, author: [x.author, x.institution, x.publication_year].filter(Boolean).join(' • '), url: x.source_url })) : [], isProfs: s.screen === 'profs', isPerfil: s.screen === 'perfil', isHist: s.screen === 'hist',
 
       skipToContent: () => {
         const el = document.getElementById('conteudo');
@@ -3111,7 +3168,7 @@ componentDidMount() {
       menuGoHome: () => { this.setState({ menuOpen: false }); this.go('#/'); },
       goProfs: () => { this.track('professional_search_started'); this.go('#/profissionais'); },
       goResultado: () => { this.track('result_viewed'); this.go('#/avaliacao/resultado'); },
-      startAssessment: () => { this.track('assessment_started'); this.setState({ voiceFlow: false, answers: {}, qIdx: 0, side: null, region: null, alertLevel: null, saved: false, notesDraft: '', transcript: '', voice: 'idle', createdAt: new Date().toISOString() }, () => this.persist({ answers: {}, qIdx: 0 })); this.go('#/avaliacao/regiao'); },
+      startAssessment: () => { this.track('assessment_started'); const questionnaireId = crypto.randomUUID(); this.setState({ voiceFlow: false, answers: {}, qIdx: 0, side: null, region: null, alertLevel: null, saved: false, notesDraft: '', transcript: '', voice: 'idle', createdAt: new Date().toISOString(), questionnaireId, painReportLoading: false, painReportError: '', painReport: null, painReportUsed: false, painConsent: false }, () => this.persist({ answers: {}, qIdx: 0, questionnaireId })); this.go('#/avaliacao/regiao'); },
       helpOpen: s.helpOpen, toggleHelp: () => this.setState({ helpOpen: !s.helpOpen }),
 
       hotspots: this.REGIONS.filter(r => this.FRONT_IDS.indexOf(r.id) >= 0).map(r => {

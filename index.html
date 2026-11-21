@@ -1348,10 +1348,15 @@
             <input type="checkbox" checked="{{ painConsent }}" onChange="{{ onPainConsent }}" style="margin-top:4px;flex:none;width:18px;height:18px;">
             <span>Li e concordo que minhas respostas sobre saúde sejam enviadas à ferramenta de IA para gerar este relatório. Entendo que o conteúdo é educativo, não é diagnóstico e não substitui avaliação profissional.</span>
           </label>
-          <button onClick="{{ generatePainReport }}" disabled="{{ painReportLoading || painReportUsed }}" style="align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:50px;padding:12px 22px;border:0;border-radius:999px;background:{{ painReportUsed ? '#82939B' : '#08796A' }};color:#FFFFFF;font:600 .95em inherit;cursor:{{ painReportUsed || painReportLoading ? 'not-allowed' : 'pointer' }};opacity:{{ painReportUsed || painReportLoading ? '.72' : '1' }};">
-            <span aria-hidden="true" style="font-family:'Material Symbols Rounded';">{{ painReportLoading ? 'hourglass_top' : 'auto_awesome' }}</span>
-            {{ painReportLoading ? 'Gerando seu relatório...' : painReportUsed ? 'Geração já utilizada' : 'Gerar meu relatório' }}
-          </button>
+          <sc-if value="{{ painReportLoading }}" hint-placeholder-val="{{ false }}">
+            <button disabled style="align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:12px 22px;border:0;border-radius:999px;background:#82939B;color:#FFFFFF;font:600 15px Arial,sans-serif;cursor:wait;">Gerando seu relatório...</button>
+          </sc-if>
+          <sc-if value="{{ !painReportLoading && !painReportUsed }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ generatePainReport }}" style="align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:12px 22px;border:0;border-radius:999px;background:#08796A;color:#FFFFFF;font:600 15px Arial,sans-serif;cursor:pointer;">Gerar meu relatório</button>
+          </sc-if>
+          <sc-if value="{{ painReportUsed && !painReportLoading }}" hint-placeholder-val="{{ false }}">
+            <button disabled style="align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:12px 22px;border:0;border-radius:999px;background:#82939B;color:#FFFFFF;font:600 15px Arial,sans-serif;cursor:not-allowed;">Geração já utilizada</button>
+          </sc-if>
           <p style="margin:0;color:#58716E;font-size:.84em;line-height:1.5;">Cada questionário permite uma única geração. Não criamos uma conta nem um histórico de relatórios nesta etapa.</p>
           <p style="display:{{ painReportError ? 'block' : 'none' }};margin:0;color:#A33B2D;font-size:.92em;line-height:1.5;" role="alert">{{ painReportError }}</p>
         </section>

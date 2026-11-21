@@ -1365,9 +1365,36 @@
             <div><span style="font-size:.75em;font-weight:700;letter-spacing:.1em;color:#08796A;">RESULTADO DA ANÁLISE EDUCATIVA</span>
               <h2 style="margin:8px 0;color:#01355E;font-family:'Poppins',sans-serif;font-size:1.45em;">O que encontramos no seu relato</h2>
               <p style="margin:0;color:#315C59;line-height:1.7;">{{ painReportSummary }}</p></div>
-            <sc-if value="{{ painReportPossibilities.length > 0 }}" hint-placeholder-val="{{ false }}"><div><h3 style="margin:0 0 8px;color:#01355E;font-size:1.05em;">Fatores que podem estar relacionados</h3><ul style="margin:0;padding-left:22px;color:#4A6472;line-height:1.7;"><sc-for list="{{ painReportPossibilities }}" as="item"><li>{{ item.text }}</li></sc-for></ul></div></sc-if>
-            <div><h3 style="margin:0 0 8px;color:#01355E;font-size:1.05em;">Entenda melhor</h3><p style="margin:0;color:#4A6472;line-height:1.75;white-space:pre-line;">{{ painReportEducational }}</p></div>
-            <sc-if value="{{ painReportSteps.length > 0 }}" hint-placeholder-val="{{ false }}"><div><h3 style="margin:0 0 8px;color:#01355E;font-size:1.05em;">Próximos passos</h3><ul style="margin:0;padding-left:22px;color:#4A6472;line-height:1.7;"><sc-for list="{{ painReportSteps }}" as="item"><li>{{ item.text }}</li></sc-for></ul></div></sc-if>
+            <div><h3 style="margin:0 0 8px;color:#01355E;font-size:1.05em;">O que suas respostas mostram</h3><p style="margin:0;color:#315C59;line-height:1.75;">{{ painReportSummary }}</p></div>
+            <sc-if value="{{ painReportPossibilities.length > 0 }}" hint-placeholder-val="{{ false }}">
+              <div><h3 style="margin:0 0 10px;color:#01355E;font-size:1.05em;">O que pode estar relacionado à sua dor?</h3>
+                <div style="display:flex;flex-direction:column;gap:12px;"><sc-for list="{{ painReportPossibilities }}" as="item">
+                  <article style="padding:16px;border:1px solid #E2E9EC;border-radius:14px;background:#FAFCFC;"><strong style="display:block;color:#075E55;margin-bottom:6px;">{{ item.title }}</strong><p style="margin:0;color:#4A6472;line-height:1.7;">{{ item.explanation }}</p></article>
+                </sc-for></div>
+              </div>
+            </sc-if>
+            <div><h3 style="margin:0 0 8px;color:#01355E;font-size:1.05em;">Vamos entender melhor</h3><p style="margin:0;color:#4A6472;line-height:1.8;white-space:pre-line;">{{ painReportEducational }}</p></div>
+            <sc-if value="{{ painReportCare.length > 0 }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:20px;border-radius:16px;background:#F2F8F6;border:1px solid #D7EAE3;">
+                <h3 style="margin:0 0 12px;color:#075E55;font-size:1.08em;">O que pode ajudar neste momento</h3>
+                <p style="margin:0 0 14px;color:#52716C;line-height:1.6;">As sugestões abaixo só aparecem quando encontram apoio nos materiais científicos consultados e são compatíveis com as respostas informadas.</p>
+                <div style="display:flex;flex-direction:column;gap:14px;"><sc-for list="{{ painReportCare }}" as="item">
+                  <article style="padding:16px;border-radius:13px;background:#FFFFFF;border:1px solid #DDEAE5;">
+                    <strong style="display:block;color:#075E55;margin-bottom:7px;">{{ item.title }}</strong>
+                    <p style="margin:0 0 8px;color:#315C59;line-height:1.7;">{{ item.recommendation }}</p>
+                    <p style="margin:0 0 8px;color:#4A6472;line-height:1.7;"><strong>Como fazer:</strong> {{ item.how_to }}</p>
+                    <p style="margin:0;color:#795D2B;line-height:1.65;"><strong>Atenção:</strong> {{ item.cautions }}</p>
+                  </article>
+                </sc-for></div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ painReportHelp.length > 0 }}" hint-placeholder-val="{{ false }}">
+              <div><h3 style="margin:0 0 10px;color:#01355E;font-size:1.05em;">Quando é importante procurar ajuda</h3>
+                <div style="display:flex;flex-direction:column;gap:10px;"><sc-for list="{{ painReportHelp }}" as="item">
+                  <article style="padding:14px;border-left:4px solid #D6A64A;border-radius:10px;background:#FFFAF0;"><strong style="display:block;color:#6B552C;margin-bottom:5px;">{{ item.situation }}</strong><p style="margin:0;color:#6B552C;line-height:1.65;">{{ item.action }}</p></article>
+                </sc-for></div>
+              </div>
+            </sc-if>
             <sc-if value="{{ painReportSources.length > 0 }}" hint-placeholder-val="{{ false }}"><div><h3 style="margin:0 0 8px;color:#01355E;font-size:1.05em;">Materiais consultados</h3><ul style="margin:0;padding-left:22px;color:#4A6472;line-height:1.7;"><sc-for list="{{ painReportSources }}" as="src"><li><strong>{{ src.title }}</strong><span style="display:block;font-size:.9em;">{{ src.author }}</span><a href="{{ src.url }}" target="_blank" rel="noopener noreferrer" style="color:#08796A;">Acessar material</a></li></sc-for></ul></div></sc-if>
             <p style="margin:0;padding:14px;border-radius:12px;background:#FFF8E9;color:#6B552C;line-height:1.6;font-size:.9em;">Este relatório é informativo e não estabelece diagnóstico. Procure um profissional habilitado para avaliação individual. Se houver sinais de urgência, busque atendimento presencial.</p>
           </section>
@@ -3141,8 +3168,9 @@ componentDidMount() {
       generatePainReport: () => this.generatePainReport(),
       painReportSummary: s.painReport && s.painReport.report ? s.painReport.report.summary : '',
       painReportEducational: s.painReport && s.painReport.report ? s.painReport.report.educational : '',
-      painReportPossibilities: s.painReport && s.painReport.report && Array.isArray(s.painReport.report.possibilities) ? s.painReport.report.possibilities.map(x => ({ text: x })) : [],
-      painReportSteps: s.painReport && s.painReport.report && Array.isArray(s.painReport.report.next_steps) ? s.painReport.report.next_steps.map(x => ({ text: x })) : [],
+      painReportPossibilities: s.painReport && s.painReport.report && Array.isArray(s.painReport.report.possibilities) ? s.painReport.report.possibilities : [],
+      painReportCare: s.painReport && s.painReport.report && Array.isArray(s.painReport.report.self_care) ? s.painReport.report.self_care : [],
+      painReportHelp: s.painReport && s.painReport.report && Array.isArray(s.painReport.report.when_to_seek_help) ? s.painReport.report.when_to_seek_help : [],
       painReportSources: s.painReport && Array.isArray(s.painReport.sources) ? s.painReport.sources.map(x => ({ title: x.title, author: [x.author, x.institution, x.publication_year].filter(Boolean).join(' • '), url: x.source_url })) : [], isProfs: s.screen === 'profs', isPerfil: s.screen === 'perfil', isHist: s.screen === 'hist',
 
       skipToContent: () => {

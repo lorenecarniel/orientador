@@ -217,10 +217,10 @@ async function createEmbedding(input: string): Promise<number[]> {
         ok: true, urgent: false, report: {
           summary: "Recebemos suas respostas, mas ainda não encontramos conteúdo suficientemente relacionado na biblioteca científica para montar uma explicação personalizada.",
           possibilities: [],
-          self_care: [],
+          self_care: practicalSelfCare(answers),
           when_to_seek_help: [{ situation: "Se a dor persistir, piorar ou limitar suas atividades.", action: "Procure avaliação com um profissional de saúde habilitado." }],
           educational: "Recebemos suas respostas e queremos ajudar você a entender melhor o que está sentindo. A biblioteca ainda não trouxe um material específico para explicar a possível causa, então não vamos tentar adivinhar um diagnóstico. Mesmo assim, podemos compartilhar cuidados gerais de fontes oficiais, respeitando os sintomas que você informou.",
-        }, self_care: practicalSelfCare(answers), sources: PRACTICAL_SOURCES.slice(0, 2),
+        }, sources: PRACTICAL_SOURCES.slice(0, 2),
       });
     }
 

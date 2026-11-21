@@ -15,6 +15,8 @@ const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const openAiKey = Deno.env.get("OPENAI_API_KEY")!;
 const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 type Answers = Record<string, string | number | boolean | null>;
 const allowedKeys = new Set([
   "side", "onset", "trauma", "weight", "startMode", "intensity", "swelling",
@@ -59,12 +61,15 @@ async function createEmbedding(input: string): Promise<number[]> {
   return vector;
 }
 
-Deno.serve(async (req) => {
+ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Método não permitido." }, 405);
+  let claimedQuestionnaireId: string | null = null;
   try {
     if (!openAiKey) return json({ error: "A integração de IA ainda não está configurada." }, 503);
     const body = await req.json();
+    const questionnaireId = String(body.questionnaire_id || "");
+    if (!UUID_RE.test(questionnaireId)) return json({ error: "Identificador do questionário inválido. Reinicie o questionário e tente novamente." }, 400);
     if (body.website) return json({ ok: true });
     const raw = body.answers;
     if (!raw || typeof raw !== "object" || Array.isArray(raw) || JSON.stringify(raw).length > 10000)
@@ -75,8 +80,21 @@ Deno.serve(async (req) => {
         answers[key] = typeof value === "string" ? value.trim().slice(0, key === "notes" ? 700 : 120) : value as string | number | boolean;
     }
     if (!Object.keys(answers).length) return json({ error: "Não encontramos respostas para analisar." }, 400);
-    if (!answers.side || !answers.intensity && answers.intensity !== 0)
+    if (!answers.side || (!answers.intensity && answers.intensity !== 0))
       return json({ error: "Complete o questionário antes de gerar o relatório." }, 400);
+
+    // Reserva atômica: a chave primária impede duas gerações para o mesmo questionário.
+    const { error: claimError } = await db
+      .from("pain_report_generations")
+      .insert({ questionnaire_id: questionnaireId });
+    if (claimError) {
+      if (claimError.code === "23505") {
+        return json({ error: "Este questionário já utilizou sua geração de relatório. Cada questionário permite apenas um relatório." }, 409);
+      }
+      console.error("pain_report_generations insert:", claimError);
+      return json({ error: "Não foi possível validar a geração deste relatório." }, 500);
+    }
+    claimedQuestionnaireId = questionnaireId;
 
     const flags = urgentFlags(answers);
     if (flags.length) {
@@ -103,7 +121,7 @@ Deno.serve(async (req) => {
     });
     if (searchError) {
       console.error("match_knowledge_chunks:", searchError);
-      return json({ error: "Não foi possível consultar a biblioteca de conhecimento." }, 500);
+      throw new Error("Não foi possível consultar a biblioteca de conhecimento.");
     }
 
     const relevant = (matches || []).filter((item: any) =>
@@ -174,7 +192,7 @@ Retorne somente JSON válido.`;
     });
     if (!completion.ok) {
       console.error("OpenAI report:", completion.status, (await completion.text()).slice(0, 500));
-      return json({ error: "Não foi possível gerar o relatório agora. Tente novamente." }, 502);
+      throw new Error("Não foi possível gerar o relatório agora. Tente novamente.");
     }
     const result = await completion.json();
     let report: any;
@@ -200,6 +218,14 @@ Retorne somente JSON válido.`;
       sources: selectedSources,
     });
   } catch (error) {
+    // Se a geração falhar tecnicamente, libera a reserva para permitir nova tentativa.
+    if (claimedQuestionnaireId) {
+      const { error: releaseError } = await db
+        .from("pain_report_generations")
+        .delete()
+        .eq("questionnaire_id", claimedQuestionnaireId);
+      if (releaseError) console.error("Falha ao liberar reserva do questionário:", releaseError);
+    }
     console.error("pain-guide-report:", error);
     return json({ error: error instanceof Error ? error.message : "Não foi possível gerar o relatório." }, 500);
   }

@@ -33,6 +33,8 @@ function urgentFlags(a: Answers): string[] {
     flags.push("Joelho quente ou avermelhado junto com inchaço: é necessária avaliação presencial prioritária, mesmo sem febre.");
   if (a.walk === "Não consigo caminhar" || a.weight === "Não consigo apoiar")
     flags.push("Incapacidade relatada de caminhar ou apoiar o peso.");
+  if (a.lock === "Sim" && a.walk !== "Não consigo caminhar")
+    flags.push("Relato de travamento ou falseio do joelho: é importante avaliação presencial antes de orientar exercícios.");
   return flags;
 }
 
@@ -217,13 +219,14 @@ async function createEmbedding(input: string): Promise<number[]> {
         ok: true, urgent: false, report: {
           summary: "Recebemos suas respostas, mas ainda não encontramos conteúdo suficientemente relacionado na biblioteca científica para montar uma explicação personalizada.",
           possibilities: [],
-          self_care: practicalSelfCare(answers),
+          self_care: care,
           when_to_seek_help: [{ situation: "Se a dor persistir, piorar ou limitar suas atividades.", action: "Procure avaliação com um profissional de saúde habilitado." }],
           educational: "Recebemos suas respostas e queremos ajudar você a entender melhor o que está sentindo. A biblioteca ainda não trouxe um material específico para explicar a possível causa, então não vamos tentar adivinhar um diagnóstico. Mesmo assim, podemos compartilhar cuidados gerais de fontes oficiais, respeitando os sintomas que você informou.",
         }, sources: PRACTICAL_SOURCES.slice(0, 2),
       });
     }
 
+    const care = practicalSelfCare(answers);
     const evidence = relevant.map((item: any, index: number) => ({
       ref: "S" + (index + 1),
       title: item.title,
@@ -248,6 +251,7 @@ Você é um assistente de educação em saúde musculoesquelética. Fale com aco
 
 REGRAS CLÍNICAS OBRIGATÓRIAS:
 - Não diagnostique, não estime probabilidades e não diga que a pessoa tem uma doença ou lesão.
+- Não use nomes de doenças específicas (por exemplo, osteoartrite ou tendinopatia) como possibilidades personalizadas. Em vez disso, explique fatores gerais somente quando os trechos sustentarem, como sobrecarga, irritação de estruturas ou alterações relacionadas ao movimento.
 - O relato é sobre joelho; não extrapole para outras regiões.
 - Use exclusivamente os trechos recuperados para afirmações científicas e recomendações clínicas. Não complete lacunas com conhecimento geral do modelo.
 - Não invente artigos, autores, datas, instituições, links, resultados ou recomendações.
@@ -256,7 +260,8 @@ REGRAS CLÍNICAS OBRIGATÓRIAS:
 - Não recomende nomes comerciais nem prescreva medicamentos. Para produtos tópicos, só mencione a possibilidade de conversar com farmacêutico ou profissional habilitado se a evidência fornecida justificar; nunca recomende produto específico.
 - Para cada possibilidade e cuidado, inclua os códigos evidence_refs correspondentes, apenas S1, S2 etc existentes. Se não houver suporte direto, deixe o array vazio e não faça a afirmação.
 - Para cuidados, explique de modo prático como fazer, por quanto tempo/frequência apenas se isso estiver explicitamente sustentado pelos trechos, e quais sinais indicam interromper. Não invente dose, duração ou frequência.
-- Se a evidência for insuficiente para cuidados imediatos, use self_care vazio e explique em educational que não é seguro indicar uma medida específica com os materiais disponíveis.
+- As orientações práticas individualizadas que o sistema já preparou para este relato estão abaixo. Não as contradiga nem diga que não é seguro indicar qualquer cuidado se essa lista tiver itens. Explique em educational o que o relato permite compreender, reconheça a incerteza e complemente os cuidados listados sem repeti-los.
+- Se a lista de cuidados estiver vazia, explique com delicadeza que não há orientação específica suficientemente sustentada para este caso.
 - Inclua orientação de avaliação profissional se a dor persistir, piorar ou limitar atividades. Em sinais de alerta, priorize avaliação presencial e não ofereça exercícios ou autocuidado como substitutos.
 - Não diga que a pessoa está segura ou que não precisa de avaliação.
 - Seja claro sobre a incerteza sem ser alarmista.
@@ -271,6 +276,8 @@ FORMATO:
 
 RELATO DO PACIENTE:
 ${summary}
+CUIDADOS PRÁTICOS JÁ SELECIONADOS PARA ESTE RELATO (não contradizer):
+${JSON.stringify(care)}
 TRECHOS RECUPERADOS:
 ${JSON.stringify(evidence)}
 Retorne somente JSON válido.`;

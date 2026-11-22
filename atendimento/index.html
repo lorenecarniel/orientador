@@ -1039,9 +1039,29 @@ async function ensureProfessionalOnboarding(user){
  if(!user||!odSupabase)return;
  const {data,error}=await odSupabase.from("professional_profiles").select("id,full_name,professional_type,specialty,phone,city,approval_status,onboarding_step").eq("id",user.id).maybeSingle();
  if(error){console.warn("Não foi possível verificar onboarding:",error.message);return}
- if(data&&data.onboarding_step!=="profile")return;
+ if(data?.approval_status==="approved"&&data?.onboarding_step==="completed")return;
+ if(data&&data.onboarding_step==="review"){
+  renderApprovalPending(data,user);
+  return;
+ }
  if(data&&data.approval_status==="approved")return;
  renderProfessionalOnboarding(data||{},user);
+}
+function renderApprovalPending(profile,user){
+ $(".app").classList.add("auth-locked");
+ const name=profile.full_name||user.user_metadata?.full_name||"Profissional";
+ $("#authRoot").innerHTML='<section class="onboarding-screen"><div class="onboarding-card" style="text-align:center"><div style="width:68px;height:68px;border-radius:50%;background:#EAF2FB;color:#01355E;display:grid;place-items:center;font-size:30px;margin:0 auto 18px">✓</div><div class="eyebrow">CADASTRO EM ANÁLISE</div><h1>Recebemos seu cadastro, '+esc(name.split(" ")[0])+'!</h1><p>Seu cadastro está aguardando a análise da equipe OrientaDor. Enquanto a aprovação não for concluída, o acesso ao painel e a publicação do seu perfil permanecerão bloqueados.</p><div class="onboarding-status" style="text-align:left"><strong>O que acontece agora?</strong><br>Nossa equipe irá revisar seus dados. Aguarde: você será avisado quando houver uma atualização sobre a aprovação. Mantenha seu e-mail cadastrado atualizado para receber os comunicados.</div><button class="btn primary" id="refreshApproval" type="button">Verificar status da aprovação</button><button class="btn" id="pendingLogout" type="button" style="margin-left:8px">Sair da conta</button></div></section>';
+ $("#refreshApproval").onclick=async()=>{
+  const b=$("#refreshApproval");b.disabled=true;b.textContent="Verificando...";
+  const {data,error}=await odSupabase.from("professional_profiles").select("approval_status,onboarding_step").eq("id",user.id).maybeSingle();
+  b.disabled=false;b.textContent="Verificar status da aprovação";
+  if(error){toast("Não foi possível consultar a aprovação: "+error.message);return}
+  if(data?.approval_status==="approved"&&data?.onboarding_step==="completed"){
+   $(".app").classList.remove("auth-locked");$("#authRoot").innerHTML="";render();toast("Cadastro aprovado! Bem-vindo ao OrientaDor.");return;
+  }
+  toast("Seu cadastro ainda está em análise. Avisaremos quando houver uma atualização.");
+ };
+ $("#pendingLogout").onclick=async()=>{const {error}=await odSupabase.auth.signOut();if(error)toast("Não foi possível sair: "+error.message)};
 }
 function renderProfessionalOnboarding(profile,user){
  $(".app").classList.add("auth-locked");
@@ -1054,8 +1074,7 @@ function renderProfessionalOnboarding(profile,user){
    const {error}=await odSupabase.from("professional_profiles").upsert(payload,{onConflict:"id"});if(error)throw error;
    if(selected){const {data:subscriptionId,error:planError}=await odSupabase.rpc("request_professional_plan",{requested_plan:selected.plan||"basic",requested_period:selected.period||"monthly"});if(planError)throw planError;const {data:checkout,error:checkoutError}=await odSupabase.functions.invoke("mercadopago-create-checkout",{body:{subscription_id:subscriptionId}});if(checkoutError)throw checkoutError;if(!checkout?.checkout_url)throw new Error("O Mercado Pago não retornou o link de pagamento.");localStorage.removeItem("od_selected_plan");window.location.href=checkout.checkout_url;return}
    await odSupabase.auth.updateUser({data:{full_name:payload.full_name}});
-   $("#authRoot").innerHTML='<section class="onboarding-screen"><div class="onboarding-card"><div class="eyebrow">CADASTRO ENVIADO</div><h1>Recebemos seus dados!</h1><p>Seu perfil está pendente de aprovação. Assim que a equipe revisar seu cadastro, a publicação no diretório poderá ser liberada.</p><div class="onboarding-status">Você já pode acessar a plataforma. A aprovação do perfil público será feita separadamente.</div><button class="btn primary" id="finishOnboarding">Ir para o painel</button></div></section>';
-   $("#finishOnboarding").onclick=()=>{ $("#authRoot").innerHTML="";$(".app").classList.remove("auth-locked");render(); };
+   renderApprovalPending({full_name:payload.full_name,approval_status:"pending",onboarding_step:"review"},user);
   }catch(err){toast("Não foi possível enviar o cadastro: "+(err.message||"Tente novamente."));btn.disabled=false;btn.textContent="Enviar cadastro para análise"}
  };
 }
